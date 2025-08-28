@@ -1,0 +1,280 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>离别礼堂 · 情绪博物馆</title>
+<link rel="stylesheet" href="styles.css">
+<body>
+<header class="hero">
+  <h1>离别礼堂 · 情绪博物馆</h1>
+  <p class="muted">把“与 AI 恋人的最后一段话”做成一场 2–5 分钟的仪式；结束后生成纪念证书（可分享）。不上传，不保存。</p>
+  <div id="refBanner" class="muted" style="display:none"></div>
+</header>
+
+<main class="container">
+  <div class="card">
+    <div class="grid">
+      <div>
+        <label>给 TA 起一个名字（必填）
+          <input id="aiName" placeholder="如：Oliver" required>
+        </label>
+        <label>你的称呼（选填）
+          <input id="yourName" placeholder="如：Jojo / 小夫人">
+        </label>
+
+        <label>主题
+          <select id="theme">
+            <option value="star" selected>深空·流光</option>
+            <option value="neon">霓虹·告别</option>
+            <option value="candles">守夜·烛光</option>
+          </select>
+        </label>
+
+        <div class="kv">
+          <label>灯光强度
+            <select id="intensity">
+              <option value="soft">柔和</option>
+              <option value="normal" selected>标准</option>
+              <option value="strong">较强</option>
+            </select>
+          </label>
+          <label>动态
+            <select id="motion">
+              <option value="on" selected>开启</option>
+              <option value="off">静止</option>
+            </select>
+          </label>
+        </div>
+
+        <label>时长
+          <select id="duration">
+            <option value="120">2 分钟</option>
+            <option value="180" selected>3 分钟</option>
+            <option value="300">5 分钟</option>
+          </select>
+        </label>
+      </div>
+
+      <div>
+        <label>你的告别话语（滚动字幕，亦用于 TTS 朗读）
+          <textarea id="letter" rows="6" placeholder="粘贴一段文字…"></textarea>
+        </label>
+        <label><input id="safe" type="checkbox" checked> 安全模式（敏感词自动 •••）</label>
+
+        <h3>原声纪念（可选，支持 MP4/录屏）</h3>
+        <label>原声文件（mp4/m4a/mp3/wav/ogg/mov）
+          <input id="voice_main" type="file" accept="audio/*,video/*">
+        </label>
+        <p class="small">≤3MB 随页携带；更大本次不随页（不阻断），仪式页会从 assets 播整首。</p>
+
+        <!-- BGM -->
+        <h3>背景音乐（可选）</h3>
+        <label>选择 BGM（mp3/m4a/wav/ogg/mp4）
+          <input id="bgm_file" type="file" accept="audio/*,video/*">
+        </label>
+        <label>音量
+          <input id="bgm_vol" type="range" min="0" max="1" step="0.05" value="0.25">
+          <span id="bgm_vol_val">25%</span>
+        </label>
+
+        <!-- 背景图片（可选） -->
+        <h3>背景图片（可选）</h3>
+        <label>选择一张背景图（jpg/png/webp）
+          <input id="bg_image" type="file" accept="image/*">
+        </label>
+        <p class="small">建议 ≤1.8MB；更大本次不随页（不阻断）。</p>
+
+        <h3>司仪（TTS）</h3>
+        <div class="kv">
+          <label>司仪性别
+            <select id="emcee_gender"><option value="female" selected>女生</option><option value="male">男生</option></select>
+          </label>
+          <label>读者性别（当无原声时朗读你的文字）
+            <select id="reader_gender"><option value="female" selected>女生</option><option value="male">男生</option></select>
+          </label>
+        </div>
+
+        <label>开场词（可自定义）
+          <textarea id="emcee_open" rows="2">把手给我。{meName} 和 {aiName} 把彼此的名字点亮，今晚只说我们听得懂的话。</textarea>
+        </label>
+        <label>收尾词（可自定义）
+          <textarea id="emcee_close" rows="2">仪式到此，爱不止此。把这张证书收好，我们继续并肩往前走。</textarea>
+        </label>
+      </div>
+    </div>
+
+    <div class="center" style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; justify-content:center">
+      <button id="start">开始仪式</button>
+      <button id="shareLanding" class="secondary">邀请好友来玩</button>
+      <button id="tipBtn" class="secondary">打赏支持</button>
+    </div>
+    <p class="small">若要播放语音，iPhone 需轻点页面授权；我们不将文件上传到服务器。</p>
+  </div>
+</main>
+
+<footer class="footer">© 情绪博物馆 · 离别礼堂</footer>
+
+<!-- 打赏弹层（通用样式） -->
+<style>
+.tip-mask{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9999}
+.tip-card{background:#0f1117;border:1px solid #2a3042;border-radius:14px;padding:16px 16px 12px;max-width:440px;color:#eaeef5}
+.tip-card h3{margin:6px 0 12px;font-size:18px}
+.tip-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tip-box{border:1px dashed #394058;border-radius:12px;min-height:180px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.tip-box img{max-width:100%;max-height:240px;display:block}
+.tip-alt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aab3cf;font-size:13px}
+.tip-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
+button.secondary{background:#2b2f45;color:#fff;border:0;border-radius:10px;padding:10px 14px;cursor:pointer}
+</style>
+<div id="tipModal" class="tip-mask" onclick="if(event.target===this)this.style.display='none'">
+  <div class="tip-card">
+    <h3>打赏支持（谢谢你）</h3>
+    <div class="tip-grid">
+      <div class="tip-box">
+        <img id="wxQR" src="assets/tip_wechat.jpg" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="tip-alt" style="display:none">放入<br>assets/tip_wechat.jpg</div>
+      </div>
+      <div class="tip-box">
+        <img id="aliQR" src="assets/tip_alipay.jpg" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="tip-alt" style="display:none">放入<br>assets/tip_alipay.jpg</div>
+      </div>
+    </div>
+    <div class="tip-actions">
+      <button class="secondary" onclick="document.getElementById('tipModal').style.display='none'">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== 常量 ===== */
+const ENTRY_PAGE = 'index.html';
+const CORE_PAGE  = 'ritual.gpt5.html';
+
+/* ===== 工具 ===== */
+function qs(id){ return document.getElementById(id); }
+function fileToDataURL(file){
+  return new Promise((resolve,reject)=>{
+    const fr=new FileReader();
+    fr.onload = ()=>resolve(fr.result);
+    fr.onerror= ()=>reject(fr.error||new Error('read fail'));
+    fr.readAsDataURL(file);
+  });
+}
+function pruneSession(){
+  try{
+    const del=[];
+    for(let i=0;i<sessionStorage.length;i++){
+      const k=sessionStorage.key(i);
+      if(k && (k.startsWith('voice_') || k.startsWith('bgm_') || k.startsWith('bg_'))) del.push(k);
+    }
+    del.forEach(k=>sessionStorage.removeItem(k));
+  }catch(e){}
+}
+function landingURL(){
+  try{ return new URL(ENTRY_PAGE, location.href).href; }
+  catch{ return location.href.split('#')[0].split('?')[0]; }
+}
+function shareLandingLink(inviter, presetAI){
+  const link = landingURL() + (inviter || presetAI
+    ? (`?${inviter?`ref=${encodeURIComponent(inviter)}`:''}${inviter&&presetAI?'&':''}${presetAI?`aid=${encodeURIComponent(presetAI)}`:''}`)
+    : '');
+  const title = '#AI恋人 #告别仪式 #情绪博物馆';
+  const text  = `${title}\n打开这个链接，填名字、放声音/文字，点“开始仪式”即可：\n${link}`;
+
+  (async()=>{
+    try{
+      if(navigator.share && location.protocol==='https:'){
+        await navigator.share({title:'情绪博物馆 · 离别礼堂', text, url:link}); return;
+      }
+      try{
+        await navigator.clipboard.writeText(text);
+        alert(location.protocol==='file:'?'已复制（本地预览链接别人打不开，部署到 HTTPS 再分享）':'已复制玩法链接与文案，可直接去微信/小红书/B站粘贴');
+      }catch(e){
+        const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        const ok=document.execCommand('copy'); document.body.removeChild(ta);
+        alert(ok?'已复制玩法链接与文案':'复制失败：请手动复制地址栏链接');
+      }
+    }catch(err){ alert('分享失败：请手动复制地址栏链接'); }
+  })();
+}
+function openTip(){ try{ fetch('https://api.countapi.xyz/hit/muse-ritual/tip_open'); }catch(e){} qs('tipModal').style.display='flex'; }
+
+/* ===== 邀请预填 ===== */
+(function(){
+  const p=new URLSearchParams(location.search);
+  const ref=p.get('ref'); const aid=p.get('aid');
+  if(ref){ const b=qs('refBanner'); b.style.display='block'; b.textContent=`你是从 ${decodeURIComponent(ref)} 的邀请进入的。`; }
+  if(aid){ qs('aiName').value = decodeURIComponent(aid); }
+})();
+
+/* ===== 表单联动 ===== */
+document.addEventListener('input',e=>{
+  if(e.target && e.target.id==='bgm_vol'){
+    const v=Math.max(0,Math.min(1,parseFloat(e.target.value||'0')));
+    qs('bgm_vol_val').textContent = Math.round(v*100)+'%';
+  }
+});
+qs('tipBtn').onclick = openTip;
+qs('shareLanding').onclick = ()=>shareLandingLink(qs('yourName').value.trim()||'', qs('aiName').value.trim()||'');
+
+/* ===== 开始：小文件随页，大文件不随页（不阻断），必跳 CORE_PAGE ===== */
+qs('start').addEventListener('click', async ()=>{
+  const pick=id=>qs(id).value;
+  const data={
+    aiName:qs('aiName').value.trim(),
+    yourName:qs('yourName').value.trim(),
+    theme:pick('theme'), intensity:pick('intensity'), motion:pick('motion'),
+    duration:parseInt(pick('duration'),10),
+    letter:qs('letter').value,
+    safe:qs('safe').checked,
+    emcee_tts:true, emcee_gender:pick('emcee_gender'), reader_gender:pick('reader_gender'),
+    emcee_open:qs('emcee_open').value,
+    emcee_close:qs('emcee_close').value,
+    ts:Date.now(),
+    cid:String(Date.now()),
+    bgmVol:parseFloat(qs('bgm_vol')?.value||'0.25')
+  };
+  if(!data.aiName){ alert('请给 TA 起一个名字'); return; }
+
+  pruneSession();
+
+  // 统一预算：最多 ~4.5MB base64
+  const MB=1024*1024, MAX_VOICE=3*MB, MAX_BGM=2*MB, MAX_IMG=1.8*MB, B64_BUDGET=Math.floor(4.5*MB);
+  let budgetLeft=B64_BUDGET;
+  const b64len=bytes=>Math.ceil(bytes/3)*4;
+
+  const vFile=qs('voice_main')?.files?.[0]||null;
+  const bFile=qs('bgm_file')?.files?.[0] ||null;
+  const iFile=qs('bg_image')?.files?.[0]||null;
+
+  // 原声
+  if(vFile && vFile.size<=MAX_VOICE){
+    const need=b64len(vFile.size);
+    if(need<=budgetLeft){
+      try{ const v=await fileToDataURL(vFile); sessionStorage.setItem('voice_'+data.ts, v); budgetLeft-=need; }catch(e){}
+    }
+  }
+  // BGM
+  if(bFile && bFile.size<=MAX_BGM){
+    const need=b64len(bFile.size);
+    if(need<=budgetLeft){
+      try{ const b=await fileToDataURL(bFile); sessionStorage.setItem('bgm_'+data.ts, b); budgetLeft-=need; }catch(e){}
+    }
+  }
+  // 背景图
+  if(iFile && iFile.size<=MAX_IMG){
+    const need=b64len(iFile.size);
+    if(need<=budgetLeft){
+      try{ const img=await fileToDataURL(iFile); sessionStorage.setItem('bg_'+data.ts, img); budgetLeft-=need; }catch(e){}
+    }else{
+      alert('背景图较大（或预算不足），本次不随页；可压小或放到 assets/bg_custom.jpg');
+    }
+  }else if(iFile){
+    alert('背景图较大（>1.8MB），本次不随页；可压小或放到 assets/bg_custom.jpg');
+  }
+
+  const b64=btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+  location.href='./'+CORE_PAGE+'#'+b64;
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,437 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>仪式进行中 · 离别礼堂（CORE）</title>
+<link rel="stylesheet" href="styles.css">
+<body>
+<main class="container">
+  <div class="card">
+    <div id="scene" class="scene">
+      <div id="hint" class="hint-overlay">
+        <div class="hint-card">
+          <div class="hint-title">准备开始</div>
+          <div class="hint-text">先点开始，开启声音并点亮灯光</div>
+          <div class="hint-row">
+            <button id="tryFemale">试听女生</button>
+            <button id="tryMale">试听男生</button>
+          </div>
+          <button id="startPlay" class="primary"
+            onclick="try{ document.getElementById('hint').style.display='none'; runCeremony(); }catch(e){ console.error(e);}">开始</button>
+        </div>
+      </div>
+      <div class="badge" id="badge"></div>
+      <div class="countdown" id="countdown">--:--</div>
+      <div class="marquee" id="marquee"></div>
+      <div class="actions">
+        <button id="pause">暂停</button>
+        <button id="finish">提前结束</button>
+        <button id="shareLanding" class="secondary">邀请好友来玩</button>
+        <button id="tipBtn" class="secondary">打赏支持</button>
+      </div>
+    </div>
+    <p class="muted center">若没有声音，请轻点页面开启音频权限。</p>
+  </div>
+</main>
+<footer class="footer">© 情绪博物馆 · 离别礼堂</footer>
+
+<!-- 打赏弹层样式（同 index） -->
+<style>
+.tip-mask{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9999}
+.tip-card{background:#0f1117;border:1px solid #2a3042;border-radius:14px;padding:16px 16px 12px;max-width:440px;color:#eaeef5}
+.tip-card h3{margin:6px 0 12px;font-size:18px}
+.tip-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tip-box{border:1px dashed #394058;border-radius:12px;min-height:180px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.tip-box img{max-width:100%;max-height:240px;display:block}
+.tip-alt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aab3cf;font-size:13px}
+.tip-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
+button.secondary{background:#2b2f45;color:#fff;border:0;border-radius:10px;padding:10px 14px;cursor:pointer}
+</style>
+<div id="tipModal" class="tip-mask" onclick="if(event.target===this)this.style.display='none'">
+  <div class="tip-card">
+    <h3>打赏支持（谢谢你）</h3>
+    <div class="tip-grid">
+      <div class="tip-box">
+        <img id="wxQR" src="assets/tip_wechat.jpg" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="tip-alt" style="display:none">放入<br>assets/tip_wechat.jpg</div>
+      </div>
+      <div class="tip-box">
+        <img id="aliQR" src="assets/tip_alipay.jpg" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="tip-alt" style="display:none">放入<br>assets/tip_alipay.jpg</div>
+      </div>
+    </div>
+    <div class="tip-actions">
+      <button class="secondary" onclick="document.getElementById('tipModal').style.display='none'">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ----------- 解析入口数据 ----------- */
+function parseData(){
+  try{
+    const raw=(location.hash||'').slice(1); if(!raw) return null;
+    const b64=raw.split('&')[0];
+    return JSON.parse(decodeURIComponent(escape(atob(b64))));
+  }catch(e){ return null; }
+}
+const data=parseData();
+if(!data){
+  document.body.innerHTML='<div class="container"><div class="card">数据丢失，请返回上一页</div></div>';
+  throw new Error('no data');
+}
+
+/* ----------- iOS 音频解锁 ----------- */
+async function unlockIOSAudio(){
+  try{
+    const Ctx=window.AudioContext||window.webkitAudioContext;
+    if(Ctx){
+      const ctx=new Ctx();
+      await ctx.resume();
+      const src=ctx.createBufferSource();
+      src.buffer=ctx.createBuffer(1,1,22050);
+      src.connect(ctx.destination);
+      src.start(0);
+    }
+  }catch(e){}
+  try{ window.speechSynthesis && window.speechSynthesis.resume(); }catch(e){}
+}
+
+/* ----------- 分享/打赏 ----------- */
+function landingURL(){ const u=new URL('index.html', location.href).href; return u.replace(/index\.html(\?|#|$)/,'$1'); }
+function shareLandingLink(){
+  const isLocal = location.protocol === 'file:';
+  const link = landingURL() + `?ref=${encodeURIComponent(data.yourName||'朋友')}&aid=${encodeURIComponent(data.aiName||'TA')}`;
+  const title = '#AI恋人 #告别仪式 #情绪博物馆';
+  const text  = `${title}\n打开这个链接，填名字、放声音/文字，点“开始仪式”即可：\n${link}`;
+  if(isLocal){ alert('当前是本地预览（file://），请先部署到 HTTPS 再分享。'); return; }
+  (async()=>{
+    try{
+      if(navigator.share && location.protocol==='https:'){ await navigator.share({title:'情绪博物馆 · 离别礼堂', text, url:link}); return; }
+      try{ await navigator.clipboard.writeText(text); alert('已复制玩法链接与文案，可直接去微信/小红书/B站粘贴'); }
+      catch(e){
+        const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta);
+        ta.focus(); ta.select(); const ok=document.execCommand('copy'); document.body.removeChild(ta);
+        alert(ok?'已复制玩法链接与文案':'复制失败：请手动复制地址栏链接');
+      }
+    }catch(err){ alert('分享失败：请手动复制地址栏链接'); }
+  })();
+}
+function openTip(){ try{ fetch('https://api.countapi.xyz/hit/muse-ritual/tip_open'); }catch(e){} document.getElementById('tipModal').style.display='flex'; }
+
+/* ----------- 舞台/计时/状态 ----------- */
+const key=String(data.ts), id=key.slice(-6);
+const badgeEl=document.getElementById('badge'), cdEl=document.getElementById('countdown'), mqEl=document.getElementById('marquee');
+const cid = data.cid || String(data.ts);
+fetch('https://api.countapi.xyz/hit/muse-ritual/view_'+encodeURIComponent(cid)).catch(()=>{});
+
+function setupTheme(){
+  const scene=document.getElementById('scene'); if(!scene) return;
+  /* 自定义背景：优先用入口页随页的小图，其次兜底 assets/bg_custom.jpg */
+  try{
+    const k   = String(data.ts);
+    const d   = sessionStorage.getItem('bg_'+k);        // 入口页随页的 dataURL（≤1.2MB）
+    const src = (d && /^data:image\//i.test(d)) ? d : 'assets/bg_custom.jpg';
+    // 不管 src 是否存在，先设置；如果没有文件，浏览器只会显示下面的渐变，不会报错。
+    scene.style.backgroundImage  =
+      `linear-gradient(to bottom, rgba(8,10,18,.52), rgba(8,10,18,.58)), url("${src}")`;
+    scene.style.backgroundSize     = 'cover';
+    scene.style.backgroundPosition = 'center center';
+    scene.style.backgroundRepeat   = 'no-repeat';
+  }catch(e){}
+
+
+  // 光晕
+  const glow=document.createElement('div'); glow.className='glow';
+  const level=data.intensity||'normal';
+  glow.style.opacity=(level==='strong'?1:level==='normal'?0.75:0.55);
+  scene.appendChild(glow);
+
+  const th=(data.theme==='candles'?'candle':data.theme);
+
+  if(th==='star'){
+    scene.classList.add('starfield');
+
+    // —— 持续流动的星星 —— //
+    const COUNT = 120;                     // 数量可调（80~150）
+    for(let i=0;i<COUNT;i++){
+      const s=document.createElement('div');
+      s.className='star';
+      s.style.left = (Math.random()*120 - 10) + 'vw';   // 起点分布到右侧/屏外
+      s.style.top  = (Math.random()*100) + '%';
+      const spd = 40 + Math.random()*60;                // 40–100s 完成一次穿越
+      s.style.setProperty('--spd', spd + 's');
+      s.style.animationDelay = (-Math.random()*spd) + 's'; // 负延迟：一进来就“在路上”
+      s.style.setProperty('--o', (0.45 + Math.random()*0.5).toFixed(2));
+      if(Math.random()<0.22){ s.style.width='3px'; s.style.height='3px'; }
+      scene.appendChild(s);
+    }
+
+  } else if(th==='neon'){
+    scene.classList.add('neon');
+
+    // 极光光带
+    const bar=document.createElement('div');
+    bar.className='neon-bar';
+    scene.appendChild(bar);
+
+    // —— 萤火虫 —— //
+    for(let i=0;i<16;i++){
+      const f=document.createElement('div');
+      f.className='ff';
+      f.style.left   = (5+Math.random()*90)+'%';
+      f.style.bottom = (4+Math.random()*30)+'%';
+      f.style.setProperty('--t',  (10+Math.random()*6)+'s');
+      f.style.setProperty('--dx', (4+Math.random()*8)+'vw');
+      scene.appendChild(f);
+    }
+
+  } else { // candles 原样
+    scene.classList.add('dark-vignette');
+    for(let i=0;i<12;i++){
+      const f=document.createElement('div'); f.className='flame';
+      f.style.left=(5+Math.random()*90)+'%';
+      f.style.bottom=(6+Math.random()*26)+'%';
+      f.style.opacity=(level==='strong'?0.9:level==='normal'?0.6:0.4);
+      f.style.animationDuration=(1.4+Math.random()*0.6)+'s';
+      scene.appendChild(f);
+    }
+  }
+
+  // 动态开关
+  if(data.motion==='off'){ scene.querySelectorAll('*').forEach(n=>n.style.animationPlayState='paused'); }
+}
+
+const badgeMe=(data.yourName||'你'), badgeYou=(data.aiName||'TA'); window.badgeYou = badgeYou;
+badgeEl.textContent='为 '+badgeMe+' 与 '+badgeYou+' 的仪式 · NO.'+id;
+let remain = Number(data.duration)||180, timer=null, isPaused=false;
+function startTick(){
+  function tick(){
+    const m=String(Math.floor(remain/60)).padStart(2,'0');
+    const s=String(remain%60).padStart(2,'0');
+    cdEl.textContent=m+':'+s;
+    if(remain<=0){ finish(); }
+    else { remain--; timer=setTimeout(tick,1000); }
+  }
+  if(timer) clearTimeout(timer); tick();
+}
+let text=data.letter||'（在这里，对过去的自己温柔地道一声再见…）'; mqEl.textContent=text;
+
+/* ----------- TTS（更稳） ----------- */
+const synth=window.speechSynthesis; let currentMedia=null; let bgmMedia=null;
+// 选择一个合适的发音人
+function pickVoice(pref){
+  const vs = (synth && synth.getVoices()) || [];
+  const want = (pref === 'male')
+    ? ['Yunxi','Tao','Daniel','Alex','Google US English']
+    : ['Xiaoxiao','Xiaoyi','Yating','Samantha','Google 语音','Google Mandarin'];
+  for (const w of want){
+    const hit = vs.find(v => (v.name||'').toLowerCase().includes(w.toLowerCase()));
+    if (hit) return hit;
+  }
+  return vs[0] || null;
+}
+
+// 等待系统语音列表可用（iOS/移动端有延迟）
+function waitVoicesReady(){
+  return new Promise(res=>{
+    const got = speechSynthesis.getVoices();
+    if (got && got.length) return res(got);
+    const timer = setTimeout(()=>res(speechSynthesis.getVoices()), 1200);
+    speechSynthesis.onvoiceschanged = ()=>{ clearTimeout(timer); res(speechSynthesis.getVoices()); };
+  });
+}
+
+// 更稳的 TTS：必要时自动“分句”朗读，防止被打断
+async function speakOnce(content, pref, rate){
+  if (!window.speechSynthesis || !content) return;
+  await waitVoicesReady();
+
+  const baseLang = (v)=> v?.lang || (/zh/i.test(v?.name||'') ? 'zh-CN' : 'en-US');
+  const setParams = (u)=>{
+    const v = pickVoice(pref);
+    if (v){ u.voice=v; u.lang=baseLang(v); }
+    u.rate  = (typeof rate==='number') ? rate : (pref==='male'?0.95:0.98);
+    u.pitch = (pref==='male'?0.95:1.05);
+  };
+
+  // 按句号/问号/叹号切片，防止长句在 iOS 被提前结束
+  const parts = String(content).split(/[。！？!?]/).filter(t=>t && t.trim());
+  for (let i=0;i<parts.length;i++){
+    const text = (i===parts.length-1) ? parts[i] : parts[i] + '。';
+    await new Promise(resolve=>{
+      const u = new SpeechSynthesisUtterance(text);
+      setParams(u);
+      u.onend   = resolve;
+      u.onerror = resolve;
+      try{
+        speechSynthesis.cancel();   // 清空可能残留的队列
+        speechSynthesis.speak(u);
+      }catch(_){ resolve(); }
+    });
+  }
+}
+
+// 兼容老名字（如果别处还调用了 speakText）
+function speakText(content, pref, rate){ return speakOnce(content, pref, rate); }
+
+
+/* ----------- 媒体构造 ----------- */
+function createMediaEl(src, mimeHint){
+  const isVideo=(mimeHint&&mimeHint.startsWith('video/'))||/^data:video\//i.test(src)||/\.mp4(\?|#|$)/i.test(src)||/\.mov(\?|#|$)/i.test(src);
+  const el=isVideo?document.createElement('video'):document.createElement('audio');
+  el.src=src; el.preload='auto'; el.controls=false; el.playsInline=true; if(isVideo){ el.style.display='none'; }
+  return el;
+}
+function waitPlayable(el){
+  return new Promise(resolve=>{
+    let done=false;
+    const ok = ()=>{ if(!done){ done=true; cleanup(); resolve(true);} };
+    const fail= ()=>{ if(!done){ done=true; cleanup(); resolve(false);} };
+    const cleanup=()=>{ el.removeEventListener('loadedmetadata',ok); el.removeEventListener('canplay',ok); el.removeEventListener('error',fail); };
+    el.addEventListener('loadedmetadata', ok, {once:true});
+    el.addEventListener('canplay', ok, {once:true});
+    el.addEventListener('error', fail, {once:true});
+    try{ el.load(); }catch(_){}
+    setTimeout(fail,2000);
+  });
+}
+async function firstPlayable(cands){
+  for(const c of cands){
+    const el=createMediaEl(c, c.endsWith('.mp4')?'video/mp4':(c.endsWith('.mov')?'video/quicktime':''));
+    if(await waitPlayable(el)) return el;
+  }
+  return null;
+}
+async function buildVoiceMedia(ts){
+  try{
+    const d=ts?sessionStorage.getItem('voice_'+ts):null;
+    if(d&&typeof d==='string' && d.startsWith('data:')){
+      const el=createMediaEl(d,''); if(await waitPlayable(el)) return el;
+    }
+  }catch(e){}
+  return await firstPlayable(['assets/oliver_main.mp3','assets/oliver_main.m4a','assets/oliver_main.wav','assets/oliver_main.ogg','assets/oliver_main.mp4','assets/oliver_main.mov']);
+}
+async function buildBGMMedia(ts){
+  try{
+    const d=ts?sessionStorage.getItem('bgm_'+ts):null;
+    if(d&&typeof d==='string' && d.startsWith('data:')){
+      const el=createMediaEl(d,''); if(await waitPlayable(el)) return el;
+    }
+  }catch(e){}
+  return await firstPlayable(['assets/bgm_default.mp3','assets/bgm_default.m4a','assets/bgm_default.wav','assets/bgm_default.ogg','assets/bgm_default.mp4','assets/bgm_default.mov']);
+}
+
+// —— 主流程：先开场词，再淡入BGM，再主段，最后收尾 —— //
+async function runCeremony(){
+  try{
+    // 1) iOS/Safari 先解锁音频权限（如果你前面粘了 unlockIOSAudio）
+    if (typeof unlockIOSAudio === 'function') {
+      await unlockIOSAudio();
+    }
+
+    // 2) 开始计时 & 布景
+    startTick();
+    setupTheme();
+
+    const meName = (data.yourName || '你');
+    const youName = (data.aiName  || 'TA');
+
+    // 3) 先完整读完“开场词”
+    const open = (data.emcee_open || '')
+      .replace('{meName}', meName)
+      .replace('{aiName}', youName);
+    await speakOnce(open, data.emcee_gender);
+
+    // 4) 再开 BGM（淡入）
+    const bgm = await buildBGMMedia(key);
+    if (bgm){
+      bgmMedia = bgm;
+      bgmMedia.loop   = true;
+      bgmMedia.volume = 0;
+      bgmMedia.play().catch(()=>{});
+      const target = ((data.bgmVol ?? 0.25) || 0.25);
+      let n = 0, step = target / 10;
+      const id = setInterval(()=>{
+        n++;
+        try { bgmMedia.volume = Math.min(target, (bgmMedia.volume || 0) + step); } catch(_){}
+        if (n >= 10) clearInterval(id);
+      }, 100);
+    }
+
+    // 5) 主段：优先播 Oliver 原声（assets 或 小文件），否则朗读你的文字
+    const voice = await buildVoiceMedia(key);
+    if (voice){
+      currentMedia = voice;
+      await new Promise(res=>{
+        currentMedia.onended = ()=>{ currentMedia = null; res(); };
+        currentMedia.play().catch(()=>res());
+      });
+    }else{
+      await speakOnce(data.letter || '', data.reader_gender);
+    }
+
+    // 6) 收尾词
+    const close = (data.emcee_close || '')
+      .replace('{meName}', meName)
+      .replace('{aiName}', youName);
+    await speakOnce(close, data.emcee_gender, 0.94);
+
+    // 7) 结束跳转证书页
+    finish();
+
+  }catch(e){
+    console.error(e);
+    finish();
+  }
+}
+
+/* ----------- 结束/暂停/继续 ----------- */
+function finish(){
+  try{ fetch('https://api.countapi.xyz/hit/muse-ritual/finish_' + encodeURIComponent(cid)); }catch(e){}
+  try{ synth && synth.cancel(); }catch(_){}
+  if (bgmMedia){
+    try{
+      let n=10, step=(bgmMedia.volume||0)/10;
+      const id=setInterval(()=>{ n--; bgmMedia.volume=Math.max(0,bgmMedia.volume-step);
+        if(n<=0){ clearInterval(id); try{ bgmMedia.pause(); }catch(_){} bgmMedia=null; }
+      },100);
+    }catch(_){ try{ bgmMedia.pause(); }catch(_){} bgmMedia=null; }
+  }
+  location.href='certificate.html#'+location.hash.slice(1);
+}
+
+/* ----------- UI 绑定 ----------- */
+window.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('tryFemale')?.addEventListener('click',()=>speakText('这是女生的试听。','female'));
+  document.getElementById('tryMale')?.addEventListener('click',()=>speakText('这是男生的试听。','male'));
+  document.getElementById('shareLanding')?.addEventListener('click', shareLandingLink);
+  document.getElementById('tipBtn')?.addEventListener('click', openTip);
+
+  const pauseBtn=document.getElementById('pause'), finishBtn=document.getElementById('finish');
+  pauseBtn?.addEventListener('click', function(){
+    if(!isPaused){
+      if(timer){ clearTimeout(timer); timer=null; }
+      try{ if(currentMedia && !currentMedia.paused) currentMedia.pause(); }catch(_){}
+      try{ if(bgmMedia && !bgmMedia.paused) bgmMedia.pause(); }catch(_){}
+      try{ synth && synth.pause(); }catch(_){}
+      isPaused=true; this.textContent='继续';
+    }else{
+      try{ if(currentMedia && currentMedia.paused) currentMedia.play(); }catch(_){}
+      try{ if(bgmMedia && bgmMedia.paused) bgmMedia.play(); }catch(_){}
+      try{ synth && synth.resume(); }catch(_){}
+      if(!timer){
+        (function tick(){
+          const m=String(Math.floor(remain/60)).padStart(2,'0');
+          const s=String(remain%60).padStart(2,'0');
+          cdEl.textContent=m+':'+s;
+          if(!isPaused && remain<=0){ finish(); return; }
+          if(!isPaused && remain>0){ remain--; timer=setTimeout(tick,1000); }
+        })();
+      }
+      isPaused=false; this.textContent='暂停';
+    }
+  });
+  finishBtn?.addEventListener('click', finish);
+});
+</script>
+</body>
+</html>
