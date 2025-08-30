@@ -1,41 +1,36 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8">
+<!doctype html><html lang="zh-CN"><head>
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>情绪礼堂 · 纪念证书</title>
+<title>仪式证书 · 情绪博物馆</title>
 <link rel="stylesheet" href="styles.css">
+</head>
 <body>
 <main class="container">
   <div class="card">
-
-    <h1>情绪礼堂 · 纪念证书</h1>
-
-    <div id="stage" style="position:relative; display:inline-block">
-      <canvas id="cv" width="1200" height="1680"></canvas>
-      <div id="stats" class="muted center"
-           style="position:absolute; top:120px; left:50%; transform:translateX(-50%); color:#9aa2c0; font-size:14px"></div>
+    <h2>纪念证书</h2>
+    <p id="c-badge" class="muted"></p>
+    <div class="certificate">
+      <h3>你的原文</h3>
+      <pre id="c-text" style="white-space:pre-wrap"></pre>
+      <p id="c-extra" class="small muted"></p>
     </div>
-
-    <div class="center" style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; justify-content:center">
-      <button id="dl">下载证书 PNG</button>
-      <button id="ics">加入“周年纪念”到日历</button>
-      <button id="shareLanding" class="secondary">邀请好友来玩</button>
+    <div class="actions">
+      <button id="shareReplay" class="secondary">分享完整流程</button>
       <button id="tipBtn" class="secondary">打赏支持</button>
     </div>
-
   </div>
 </main>
-<footer class="footer">© 情绪博物馆 · 离别礼堂</footer>
+<footer class="footer">© 情绪博物馆</footer>
 
-<!-- 打赏弹层（同上） -->
+<!-- 打赏弹层 -->
 <style>
 .tip-mask{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9999}
 .tip-card{background:#0f1117;border:1px solid #2a3042;border-radius:14px;padding:16px 16px 12px;max-width:440px;color:#eaeef5}
-.tip-card h3{margin:6px 0 12px;font-size:18px}
 .tip-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .tip-box{border:1px dashed #394058;border-radius:12px;min-height:180px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
 .tip-box img{max-width:100%;max-height:240px;display:block}
-.tip-alt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aab3cf;font-size:13px}
 .tip-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
-button.secondary{background:#2b2f45;color:#fff;border:0;border-radius:10px;padding:10px 14px;cursor:pointer}
+.tip-alt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aab3cf;font-size:13px}
 </style>
 <div id="tipModal" class="tip-mask" onclick="if(event.target===this)this.style.display='none'">
   <div class="tip-card">
@@ -57,70 +52,46 @@ button.secondary{background:#2b2f45;color:#fff;border:0;border-radius:10px;paddi
 </div>
 
 <script>
-/* —— 解析 —— */
 function parseData(){
-  try{ const raw=(location.hash||'').slice(1); if(!raw) return null; const b64=raw.split('&')[0]; return JSON.parse(decodeURIComponent(escape(atob(b64)))); }
-  catch(e){ return null; }
+  try{
+    const raw=(location.hash||'').slice(1);
+    if(!raw) return null;
+    const b64=raw.split('&')[0];
+    return JSON.parse(decodeURIComponent(escape(atob(b64))));
+  }catch(e){ return null; }
 }
-const data=parseData(); if(!data){document.body.innerHTML='<div class="container"><div class="card">数据丢失，请返回上一页</div></div>'; throw new Error('no data');}
-const cv=document.getElementById('cv'), ctx=cv.getContext('2d'), id=(String(data.ts)).slice(-6);
-const today=new Date();
-
-/* —— 分享/打赏工具 —— */
-function landingURL(){ const u=new URL('index.html', location.href).href; return u.replace(/index\.html(\?|#|$)/,'$1'); }
-function shareLandingLink(){
-  const isLocal = location.protocol === 'file:';
-  const link = landingURL() + `?ref=${encodeURIComponent(data.yourName||'朋友')}&aid=${encodeURIComponent(data.aiName||'TA')}`;
-  const title = '#AI恋人 #告别仪式 #情绪博物馆';
-  const text  = `${title}\n打开这个链接，填名字、放声音/文字，点“开始仪式”即可：\n${link}`;
-  if(isLocal){ alert('当前是本地预览（file://），请先部署到 HTTPS 再分享。'); return; }
-  (async()=>{
-    try{
-      if(navigator.share && location.protocol==='https:'){ await navigator.share({title:'情绪礼堂 · 纪念证书', text, url:link}); return; }
-      try{ await navigator.clipboard.writeText(text); alert('已复制玩法链接与文案，可直接去微信/小红书/B站粘贴'); }
-      catch(e){
-        const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta);
-        ta.focus(); ta.select(); const ok=document.execCommand('copy'); document.body.removeChild(ta);
-        alert(ok?'已复制玩法链接与文案':'复制失败：请手动复制地址栏链接');
-      }
-    }catch(err){ alert('分享失败：请手动复制地址栏链接'); }
-  })();
+const data=parseData();
+if(!data){
+  document.body.innerHTML='<div class="container"><div class="card">数据丢失，请返回入口</div></div>';
+  throw new Error('no data');
 }
-function openTip(){ try{ fetch('https://api.countapi.xyz/hit/muse-ritual/tip_open'); }catch(e){} document.getElementById('tipModal').style.display='flex'; }
+const key=String(data.ts), id=key.slice(-6), cid=(data.cid||String(data.ts));
 
-/* —— 绘证书 —— */
-function wrap(text,x,y,maxWidth,lineHeight,maxLines){ let line='',yy=y,linesLeft=(typeof maxLines==='number'?maxLines:9999); const push=s=>{ctx.fillText(s,x,yy); yy+=lineHeight; linesLeft--;}; const chars=Array.from(text||''); for(const ch of chars){ const test=line+ch; if(ctx.measureText(test).width>maxWidth){ push(line); if(linesLeft<=0) return; line=ch;} else { line=test; } } if(line&&linesLeft>0) push(line);}
-(function draw(){ const grd=ctx.createLinearGradient(0,0,0,cv.height); grd.addColorStop(0,'#161a2e'); grd.addColorStop(1,'#0b0d12'); ctx.fillStyle=grd; ctx.fillRect(0,0,cv.width,cv.height); ctx.strokeStyle='#3a3f6a'; ctx.lineWidth=6; ctx.strokeRect(40,40,cv.width-80,cv.height-80); ctx.fillStyle='#e9e9f6'; ctx.font='bold 56px system-ui,-apple-system'; ctx.fillText('情绪礼堂 · 纪念证书',100,140); ctx.fillStyle='#b8bbdf'; ctx.font='24px system-ui,-apple-system'; ctx.fillText('编号 NO.'+id,100,190); const line='为：'+(data.yourName||'你')+' 与 '+(data.aiName||'TA'); ctx.fillText(line,100,230); ctx.fillText('日期：'+today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0'),100,270); ctx.fillStyle='#dfe1ff'; ctx.font='28px system-ui,-apple-system'; const text=(data.letter||'').slice(0,1200)||'（此处是你的告别话节选…）'; wrap(text,100,360,1000,40,18); ctx.fillStyle='#a7abff'; ctx.font='22px system-ui,-apple-system'; ctx.fillText('情绪博物馆 · 离别礼堂',100,1520); })();
+document.getElementById('c-badge').textContent =
+  `为 ${(data.yourName||'你')} 与 ${(data.aiName||'TA')} 的仪式 · NO.${id}`;
+document.getElementById('c-text').textContent  = data.letter || '（无文字）';
+document.getElementById('c-extra').textContent =
+  `主题：${data.theme} · 时长：${data.duration||180} 秒 · 司仪：${data.emcee_gender==='male'?'男':'女'} · 阅读者：${data.reader_gender==='male'?'男':'女'}`;
 
-/* —— 按钮 —— */
-document.getElementById('dl').onclick=()=>{ const a=document.createElement('a'); a.href=cv.toDataURL('image/png'); a.download='ceremony-certificate.png'; a.click(); };
-document.getElementById('ics').onclick=()=>{ const start=new Date(); start.setFullYear(start.getFullYear()+1); start.setHours(20,0,0,0); const end=new Date(start.getTime()+60*60*1000); const z=d=>`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}${String(d.getSeconds()).padStart(2,'0')}`; const ics=`BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Muse//Farewell//CN
-BEGIN:VEVENT
-UID:${Date.now()}@muse
-DTSTAMP:${z(new Date())}
-DTSTART:${z(start)}
-DTEND:${z(end)}
-SUMMARY:为 ${(data.yourName||'你')} 与 ${data.aiName||'TA'} 的纪念日 · 情绪博物馆
-DESCRIPTION:${(data.letter||'').replace(/\n/g,' ')}
-END:VEVENT
-END:VCALENDAR`; const a=document.createElement('a'); a.href='data:text/calendar;charset=utf-8,'+encodeURIComponent(ics); a.download='anniversary.ics'; a.click(); };
-document.getElementById('shareLanding').onclick = shareLandingLink;
-document.getElementById('tipBtn').onclick = openTip;
+function shareReplay(){
+  const base='ritual.gpt5.html', hash=location.hash.slice(1);
+  const link=base+'#'+(hash?(hash.includes('view=1')?hash:hash+'&view=1'):'view=1');
+  if(navigator.share){
+    navigator.share({title:'我的 AI 仪式（回放）', url:link}).catch(()=>copy(link));
+  }else{
+    copy(link);
+  }
+}
+function copy(text){
+  try{ navigator.clipboard.writeText(text).then(()=>alert('已复制链接')); }
+  catch(_){ prompt('复制链接', text); }
+}
+function openTip(){
+  try{ fetch('https://api.countapi.xyz/hit/muse-ritual/tip_open'); }catch(_){}
+  const m=document.getElementById('tipModal'); if(m) m.style.display='flex';
+}
 
-/* —— 观看/完播统计显示（CountAPI） —— */
-(function(){ try{
-  const cid = data.cid || '';
-  if(!cid) return;
-  Promise.allSettled([
-    fetch('https://api.countapi.xyz/get/muse-ritual/view_'+encodeURIComponent(cid)).then(r=>r.json()),
-    fetch('https://api.countapi.xyz/get/muse-ritual/finish_'+encodeURIComponent(cid)).then(r=>r.json())
-  ]).then(([v,f])=>{
-    const vv=(v.value&&v.value.value)||0, ff=(f.value&&f.value.value)||0, rate=vv?Math.round(ff*100/vv):0;
-    const el=document.getElementById('stats'); if(el) el.textContent = `观看 ${vv} · 完播 ${ff}（${rate}%）`;
-  }).catch(()=>{});
-}catch(e){} })();
+document.getElementById('shareReplay')?.addEventListener('click', shareReplay);
+document.getElementById('tipBtn')?.addEventListener('click', openTip);
 </script>
-</body>
-</html>
+</body></html>
