@@ -1,11 +1,13 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8">
+<!doctype html><html lang="zh-CN"><head>
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>离别礼堂 · 情绪博物馆</title>
+<title>情绪博物馆 · 仪式入口</title>
 <link rel="stylesheet" href="styles.css">
+</head>
 <body>
 <header class="hero">
-  <h1>离别礼堂 · 情绪博物馆</h1>
-  <p class="muted">把“与 AI 恋人的最后一段话”做成一场 2–5 分钟的仪式；结束后生成纪念证书（可分享）。不上传，不保存。</p>
+  <h1>情绪博物馆</h1>
+  <p class="muted">把你的告别/表白做成 2–5 分钟的仪式。结束生成纪念证书。全程不上传，只随页临时保存。</p>
   <div id="refBanner" class="muted" style="display:none"></div>
 </header>
 
@@ -23,7 +25,7 @@
         <label>主题
           <select id="theme">
             <option value="star" selected>深空·流光</option>
-            <option value="neon">霓虹·告别</option>
+            <option value="neon">霓虹·极光</option>
             <option value="candles">守夜·烛光</option>
           </select>
         </label>
@@ -54,7 +56,7 @@
       </div>
 
       <div>
-        <label>你的告别话语（滚动字幕，亦用于 TTS 朗读）
+        <label>你的告别/表白话语（滚动字幕，亦用于 TTS 朗读）
           <textarea id="letter" rows="6" placeholder="粘贴一段文字…"></textarea>
         </label>
         <label><input id="safe" type="checkbox" checked> 安全模式（敏感词自动 •••）</label>
@@ -63,9 +65,8 @@
         <label>原声文件（mp4/m4a/mp3/wav/ogg/mov）
           <input id="voice_main" type="file" accept="audio/*,video/*">
         </label>
-        <p class="small">≤3MB 随页携带；更大本次不随页（不阻断），仪式页会从 assets 播整首。</p>
+        <p class="small">≤3MB 随页携带；更大则不随页（不阻断）。</p>
 
-        <!-- BGM -->
         <h3>背景音乐（可选）</h3>
         <label>选择 BGM（mp3/m4a/wav/ogg/mp4）
           <input id="bgm_file" type="file" accept="audio/*,video/*">
@@ -75,12 +76,11 @@
           <span id="bgm_vol_val">25%</span>
         </label>
 
-        <!-- 背景图片（可选） -->
         <h3>背景图片（可选）</h3>
         <label>选择一张背景图（jpg/png/webp）
           <input id="bg_image" type="file" accept="image/*">
         </label>
-        <p class="small">建议 ≤1.8MB；更大本次不随页（不阻断）。</p>
+        <p class="small">建议 ≤1.2MB；更大本次不随页。</p>
 
         <h3>司仪（TTS）</h3>
         <div class="kv">
@@ -110,9 +110,9 @@
   </div>
 </main>
 
-<footer class="footer">© 情绪博物馆 · 离别礼堂</footer>
+<footer class="footer">© 情绪博物馆</footer>
 
-<!-- 打赏弹层（通用样式） -->
+<!-- 打赏弹层 -->
 <style>
 .tip-mask{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9999}
 .tip-card{background:#0f1117;border:1px solid #2a3042;border-radius:14px;padding:16px 16px 12px;max-width:440px;color:#eaeef5}
@@ -122,7 +122,6 @@
 .tip-box img{max-width:100%;max-height:240px;display:block}
 .tip-alt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aab3cf;font-size:13px}
 .tip-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
-button.secondary{background:#2b2f45;color:#fff;border:0;border-radius:10px;padding:10px 14px;cursor:pointer}
 </style>
 <div id="tipModal" class="tip-mask" onclick="if(event.target===this)this.style.display='none'">
   <div class="tip-card">
@@ -144,79 +143,38 @@ button.secondary{background:#2b2f45;color:#fff;border:0;border-radius:10px;paddi
 </div>
 
 <script>
-/* ===== 常量 ===== */
-const ENTRY_PAGE = 'index.html';
-const CORE_PAGE  = 'ritual.gpt5.html';
-
-/* ===== 工具 ===== */
+const CORE_PAGE='ritual.gpt5.html';
 function qs(id){ return document.getElementById(id); }
-function fileToDataURL(file){
-  return new Promise((resolve,reject)=>{
-    const fr=new FileReader();
-    fr.onload = ()=>resolve(fr.result);
-    fr.onerror= ()=>reject(fr.error||new Error('read fail'));
-    fr.readAsDataURL(file);
-  });
-}
-function pruneSession(){
-  try{
-    const del=[];
-    for(let i=0;i<sessionStorage.length;i++){
-      const k=sessionStorage.key(i);
-      if(k && (k.startsWith('voice_') || k.startsWith('bgm_') || k.startsWith('bg_'))) del.push(k);
-    }
-    del.forEach(k=>sessionStorage.removeItem(k));
-  }catch(e){}
-}
-function landingURL(){
-  try{ return new URL(ENTRY_PAGE, location.href).href; }
-  catch{ return location.href.split('#')[0].split('?')[0]; }
-}
-function shareLandingLink(inviter, presetAI){
+function fileToDataURL(file){ return new Promise((res,rej)=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.onerror=()=>rej(fr.error||new Error('read fail')); fr.readAsDataURL(file); }); }
+function pruneSession(){ try{ const del=[]; for(let i=0;i<sessionStorage.length;i++){ const k=sessionStorage.key(i); if(k && (k.startsWith('voice_')||k.startsWith('bgm_')||k.startsWith('bg_'))) del.push(k);} del.forEach(k=>sessionStorage.removeItem(k)); }catch(e){} }
+function landingURL(){ try{ return new URL('index.html', location.href).href; }catch{ return location.href.split('#')[0].split('?')[0]; } }
+function shareLanding(inviter, presetAI){
   const link = landingURL() + (inviter || presetAI
     ? (`?${inviter?`ref=${encodeURIComponent(inviter)}`:''}${inviter&&presetAI?'&':''}${presetAI?`aid=${encodeURIComponent(presetAI)}`:''}`)
     : '');
-  const title = '#AI恋人 #告别仪式 #情绪博物馆';
-  const text  = `${title}\n打开这个链接，填名字、放声音/文字，点“开始仪式”即可：\n${link}`;
-
+  const title = '#AI恋人 #告别/表白 #情绪博物馆';
+  const text  = `${title}\n打开链接，填名字、放声音/文字，点“开始仪式”：\n${link}`;
   (async()=>{
     try{
-      if(navigator.share && location.protocol==='https:'){
-        await navigator.share({title:'情绪博物馆 · 离别礼堂', text, url:link}); return;
-      }
-      try{
-        await navigator.clipboard.writeText(text);
-        alert(location.protocol==='file:'?'已复制（本地预览链接别人打不开，部署到 HTTPS 再分享）':'已复制玩法链接与文案，可直接去微信/小红书/B站粘贴');
-      }catch(e){
-        const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
-        document.body.appendChild(ta); ta.focus(); ta.select();
-        const ok=document.execCommand('copy'); document.body.removeChild(ta);
-        alert(ok?'已复制玩法链接与文案':'复制失败：请手动复制地址栏链接');
-      }
-    }catch(err){ alert('分享失败：请手动复制地址栏链接'); }
+      if(navigator.share && location.protocol==='https:'){ await navigator.share({title:'情绪博物馆', text, url:link}); return; }
+      try{ await navigator.clipboard.writeText(text); alert('已复制玩法链接与文案'); }
+      catch{ const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); alert('已复制玩法链接与文案'); }
+    }catch{ alert('分享失败：请手动复制地址栏链接'); }
   })();
 }
 function openTip(){ try{ fetch('https://api.countapi.xyz/hit/muse-ritual/tip_open'); }catch(e){} qs('tipModal').style.display='flex'; }
 
-/* ===== 邀请预填 ===== */
-(function(){
+(function(){  // 预填邀请
   const p=new URLSearchParams(location.search);
   const ref=p.get('ref'); const aid=p.get('aid');
   if(ref){ const b=qs('refBanner'); b.style.display='block'; b.textContent=`你是从 ${decodeURIComponent(ref)} 的邀请进入的。`; }
   if(aid){ qs('aiName').value = decodeURIComponent(aid); }
 })();
 
-/* ===== 表单联动 ===== */
-document.addEventListener('input',e=>{
-  if(e.target && e.target.id==='bgm_vol'){
-    const v=Math.max(0,Math.min(1,parseFloat(e.target.value||'0')));
-    qs('bgm_vol_val').textContent = Math.round(v*100)+'%';
-  }
-});
+document.addEventListener('input',e=>{ if(e.target && e.target.id==='bgm_vol'){ const v=Math.max(0,Math.min(1,parseFloat(e.target.value||'0'))); qs('bgm_vol_val').textContent = Math.round(v*100)+'%'; } });
 qs('tipBtn').onclick = openTip;
-qs('shareLanding').onclick = ()=>shareLandingLink(qs('yourName').value.trim()||'', qs('aiName').value.trim()||'');
+qs('shareLanding').onclick = ()=>shareLanding(qs('yourName').value.trim()||'', qs('aiName').value.trim()||'');
 
-/* ===== 开始：小文件随页，大文件不随页（不阻断），必跳 CORE_PAGE ===== */
 qs('start').addEventListener('click', async ()=>{
   const pick=id=>qs(id).value;
   const data={
@@ -237,44 +195,28 @@ qs('start').addEventListener('click', async ()=>{
 
   pruneSession();
 
-  // 统一预算：最多 ~4.5MB base64
-  const MB=1024*1024, MAX_VOICE=3*MB, MAX_BGM=2*MB, MAX_IMG=1.8*MB, B64_BUDGET=Math.floor(4.5*MB);
-  let budgetLeft=B64_BUDGET;
-  const b64len=bytes=>Math.ceil(bytes/3)*4;
+  const MB=1024*1024, MAX_VOICE=3*MB, MAX_BGM=2*MB, MAX_IMG=1.2*MB, B64_BUDGET=Math.floor(4.5*MB);
+  let budgetLeft=B64_BUDGET; const b64len=bytes=>Math.ceil(bytes/3)*4;
 
   const vFile=qs('voice_main')?.files?.[0]||null;
   const bFile=qs('bgm_file')?.files?.[0] ||null;
   const iFile=qs('bg_image')?.files?.[0]||null;
 
-  // 原声
   if(vFile && vFile.size<=MAX_VOICE){
     const need=b64len(vFile.size);
-    if(need<=budgetLeft){
-      try{ const v=await fileToDataURL(vFile); sessionStorage.setItem('voice_'+data.ts, v); budgetLeft-=need; }catch(e){}
-    }
+    if(need<=budgetLeft){ try{ const v=await fileToDataURL(vFile); sessionStorage.setItem('voice_'+data.ts, v); budgetLeft-=need; }catch(e){} }
   }
-  // BGM
   if(bFile && bFile.size<=MAX_BGM){
     const need=b64len(bFile.size);
-    if(need<=budgetLeft){
-      try{ const b=await fileToDataURL(bFile); sessionStorage.setItem('bgm_'+data.ts, b); budgetLeft-=need; }catch(e){}
-    }
+    if(need<=budgetLeft){ try{ const b=await fileToDataURL(bFile); sessionStorage.setItem('bgm_'+data.ts, b); budgetLeft-=need; }catch(e){} }
   }
-  // 背景图
   if(iFile && iFile.size<=MAX_IMG){
     const need=b64len(iFile.size);
-    if(need<=budgetLeft){
-      try{ const img=await fileToDataURL(iFile); sessionStorage.setItem('bg_'+data.ts, img); budgetLeft-=need; }catch(e){}
-    }else{
-      alert('背景图较大（或预算不足），本次不随页；可压小或放到 assets/bg_custom.jpg');
-    }
-  }else if(iFile){
-    alert('背景图较大（>1.8MB），本次不随页；可压小或放到 assets/bg_custom.jpg');
-  }
+    if(need<=budgetLeft){ try{ const img=await fileToDataURL(iFile); sessionStorage.setItem('bg_'+data.ts, img); budgetLeft-=need; }catch(e){} }
+  }else if(iFile){ alert('背景图较大（>1.2MB），本次不随页；可压小或放到 assets/bg_custom.jpg'); }
 
   const b64=btoa(unescape(encodeURIComponent(JSON.stringify(data))));
   location.href='./'+CORE_PAGE+'#'+b64;
 });
 </script>
-</body>
-</html>
+</body></html>
