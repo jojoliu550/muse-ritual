@@ -343,5 +343,16 @@ window.addEventListener('DOMContentLoaded',()=>{
   });
   document.getElementById('finish')?.addEventListener('click', finish);
 });
+  /* 保险启动：若某些内核不触发按钮 click，首次触摸任意位置即开始 */
+document.addEventListener('touchstart', function once(){
+  try{
+    const hint = document.getElementById('hint');
+    if(hint && hint.style.display!=='none'){
+      startRitual();
+    }
+  }catch(e){}
+  document.removeEventListener('touchstart', once);
+}, { once:true });
 </script>
 </body></html>
+
