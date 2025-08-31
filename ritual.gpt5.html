@@ -1,50 +1,60 @@
 <!doctype html><html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>仪式进行中 · 情绪博物馆</title>
+<title>仪式进行中 · 情绪博物馆（安全启动版）</title>
 <link rel="stylesheet" href="styles.css">
+<style>
+/* 兜底：任何遮挡都让按钮可点 */
+.hint-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9999}
+.hint-card{background:#0f1117;border:1px solid #2a3042;border-radius:16px;padding:16px;max-width:420px;color:#eaeef5;text-align:center}
+.hint-title{font-size:18px;margin:2px 0 6px}
+.hint-text{font-size:14px;color:#aab3cf;margin-bottom:10px}
+.hint-row{display:flex;gap:10px;justify-content:center;margin-bottom:10px;flex-wrap:wrap}
+.actions{position:fixed;left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));display:flex;flex-wrap:wrap;gap:10px;justify-content:center;z-index:5}
+.actions>button{flex:1 1 160px;min-height:40px;white-space:nowrap}
+</style>
 </head>
 <body>
 <main class="container">
   <div class="card">
     <div id="scene" class="scene">
 
-     <!-- 开场遮罩（加入内联 onclick 兜底） -->
-<div id="hint" class="hint-overlay">
-  <div class="hint-card">
-    <div class="hint-title">准备开始</div>
-    <div class="hint-text">先点“试听”或“开始”，为 iPhone/微信开启声音</div>
-    <div class="hint-row">
-      <button id="tryFemale" onclick="try{unlockIOSAudio();speakOnce('这是女生的试听。','female');}catch(e){}">试听女生</button>
-      <button id="tryMale" onclick="try{unlockIOSAudio();speakOnce('这是男生的试听。','male');}catch(e){}">试听男生</button>
-    </div>
-    <button id="startPlay" class="primary" onclick="startRitual()">开始</button>
-  </div>
-</div>
+      <!-- 开场遮罩：整块都能触发（ontouchstart/onclick） -->
+      <div id="hint" class="hint-overlay" ontouchstart="__start()" onclick="__start()">
+        <div class="hint-card">
+          <div class="hint-title">准备开始</div>
+          <div class="hint-text">点任意处或下方按钮开启声音</div>
+          <div class="hint-row">
+            <button id="tryFemale" onclick="__try('female')">试听女生</button>
+            <button id="tryMale"   onclick="__try('male')">试听男生</button>
+          </div>
+          <button id="startPlay" class="primary" onclick="__start()">开始</button>
+        </div>
+      </div>
 
-     <!-- 舞台信息/动作 -->
+      <!-- 舞台信息/动作 -->
       <div class="badge" id="badge"></div>
       <div class="countdown" id="countdown">--:--</div>
       <div class="marquee" id="marquee"></div>
+
       <div class="actions">
-        <button id="pause">暂停</button>
-        <button id="finish">提前结束</button>
-        <button id="shareLanding" class="secondary">邀请好友来玩</button>
-        <button id="shareReplay" class="secondary">分享完整流程</button>
-        <button id="tipBtn" class="secondary">打赏支持</button>
+        <button id="pause" onclick="__pause()">暂停</button>
+        <button id="finish" onclick="__finish()">提前结束</button>
+        <button id="shareLanding" class="secondary" onclick="__shareLanding()">邀请好友来玩</button>
+        <button id="shareReplay"  class="secondary" onclick="__shareReplay()">分享完整流程</button>
+        <button id="tipBtn"       class="secondary" onclick="__tip()">打赏支持</button>
       </div>
     </div>
-    <p class="muted center">若没有声音，请先点“试听”再点“开始”；iPhone 请确认侧边静音键已关闭。</p>
+    <p class="muted center">若没有声音：先点“试听”或任何位置；iPhone 请关闭机身静音键。</p>
   </div>
 </main>
 
 <footer class="footer">© 情绪博物馆</footer>
 
-<!-- 打赏弹层 -->
+<!-- 打赏弹层（复用入口样式） -->
 <style>
-.tip-mask{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9999}
+.tip-mask{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:99999}
 .tip-card{background:#0f1117;border:1px solid #2a3042;border-radius:14px;padding:16px 16px 12px;max-width:440px;color:#eaeef5}
-.tip-card h3{margin:6px 0 12px;font-size:18px}
 .tip-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .tip-box{border:1px dashed #394058;border-radius:12px;min-height:180px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
 .tip-box img{max-width:100%;max-height:240px;display:block}
@@ -70,7 +80,7 @@
   </div>
 </div>
 
-<!-- 分享弹层（复制 + 二维码） -->
+<!-- 分享弹层 -->
 <style>
 .share-mask{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9999}
 .share-card{background:#0f1117;border:1px solid #2a3042;border-radius:14px;padding:16px;max-width:460px;color:#eaeef5}
@@ -87,7 +97,7 @@
         <input id="shareInput" readonly style="width:100%;padding:10px;border-radius:8px;background:#0d0f18;color:#eaeef5;border:1px solid #2a3042">
         <p class="small" style="margin-top:8px">长按或点“复制”</p>
         <div class="share-actions" style="justify-content:flex-start">
-          <button class="secondary" onclick="copyShare()">复制</button>
+          <button class="secondary" onclick="__copyShare()">复制</button>
         </div>
       </div>
       <div class="share-box">
@@ -101,259 +111,214 @@
 </div>
 
 <script>
-/* ============== 解析入口数据 ============== */
+/* ===== 简化工具 & 数据解析（避免新语法） ===== */
+function $(id){ return document.getElementById(id); }
 function parseData(){
   try{
-    const raw=(location.hash||'').slice(1); if(!raw) return null;
-    const b64=raw.split('&')[0];  // 支持 view=1 等追加参数
+    var raw=(location.hash||'').slice(1);
+    if(!raw) return null;
+    var b64=raw.split('&')[0];
     return JSON.parse(decodeURIComponent(escape(atob(b64))));
   }catch(e){ return null; }
 }
-const data=parseData();
+var data=parseData();
 if(!data){ document.body.innerHTML='<div class="container"><div class="card">数据丢失，请返回入口</div></div>'; throw new Error('no data'); }
-const key=String(data.ts), cid=(data.cid||String(data.ts)), id=key.slice(-6);
+var key=String(data.ts), cid=(data.cid||String(data.ts)), id=key.slice(-6);
 
-/* 小圆点：声音解锁状态（红/绿） */
-(function(){ const dot=document.createElement('div'); dot.id='soundDot';
+/* 声音指示点 */
+(function(){ var dot=document.createElement('div'); dot.id='soundDot';
   dot.style.cssText='position:fixed;right:8px;top:8px;width:10px;height:10px;border-radius:50%;background:#f55;opacity:.9;z-index:99999';
-  document.addEventListener('DOMContentLoaded',()=>document.body.appendChild(dot)); })();
-function setDot(ok){ const d=document.getElementById('soundDot'); if(d) d.style.background=ok?'#2ecc71':'#f55'; }
+  document.addEventListener('DOMContentLoaded',function(){ document.body.appendChild(dot); });
+})();
+function setDot(ok){ var d=$('soundDot'); if(d) d.style.background=ok?'#2ecc71':'#f55'; }
 
-/* DOM */
-const badgeEl=document.getElementById('badge');
-const cdEl=document.getElementById('countdown');
-const mqEl=document.getElementById('marquee');
+/* 舞台初始化（不依赖新语法） */
+var badgeEl=$('badge'), cdEl=$('countdown'), mqEl=$('marquee');
+var remain=Number(data.duration)||180, timer=null, paused=false;
+var bgm=null, voice=null;
 
-/* 媒体容器：把 <audio>/<video> 真挂到 DOM（解决 iOS/微信不出声） */
-let mediaBin=null; document.addEventListener('DOMContentLoaded',()=>{ mediaBin=document.createElement('div'); mediaBin.style.cssText='position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;'; document.body.appendChild(mediaBin); });
-
-/* 计时 */
-let remain=Number(data.duration)||180, timer=null, isPaused=false;
-/* 全局句柄 */
-let bgmEl=null, voiceEl=null;
-/* TTS */
-const synth=window.speechSynthesis;
-
-/* ============== 音频解锁 + 预热 ============== */
-async function unlockIOSAudio(){
-  try{ const Ctx=window.AudioContext||window.webkitAudioContext; if(Ctx){ const ctx=new Ctx(); await (ctx.resume?.()); const osc=ctx.createOscillator(), gain=ctx.createGain(); gain.gain.value=0; osc.connect(gain).connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime+0.02); } }catch(_){}
-  try{ synth && synth.resume?.(); }catch(_){}
-  try{ const a=document.createElement('audio'); a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBIAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA='; a.muted=true; a.playsInline=true; await a.play().catch(()=>{}); a.pause(); a.remove(); }catch(_){}
-}
-function createAudio(src){ const a=document.createElement('audio'); a.src=src; a.preload='auto'; a.controls=false; a.playsInline=true; a.setAttribute('webkit-playsinline',''); mediaBin && mediaBin.appendChild(a); return a; }
-async function pickPlayable(sources,{muted=false}={}){ for(const s of sources){ if(!s) continue; try{ const a=createAudio(s); a.muted=muted; await a.play().then(()=>{ a.pause(); a.muted=false; }); return a; }catch(_){ } } return null; }
-function getSessionData(prefix){ try{ const d=sessionStorage.getItem(prefix+'_'+key); return (d&&d.startsWith('data:'))?d:null; }catch(_){ return null; } }
-async function buildBGM_inGesture(){ const ss=getSessionData('bgm'); const c=[ss,'assets/bgm_default.m4a','assets/bgm_default.mp3','assets/bgm_default.ogg','assets/bgm_default.wav']; return await pickPlayable(c,{muted:true}); }
-
-/* NEW：原声支持 video 回退（mp4/mov 录屏） */
-async function buildVoice_inGesture(){
-  const ss = getSessionData('voice');
-
-  // 先尝试纯音频容器
-  const audioList = [ ss, 'assets/oliver_main.m4a','assets/oliver_main.mp3','assets/oliver_main.ogg','assets/oliver_main.wav' ];
-  let el = await pickPlayable(audioList, {muted:false});
-  if (el) return el;
-
-  // 回退到 <video> 作为只播音轨的播放器
-  const mayVideo = (src)=> src && /(^data:video\/|\.mp4($|\?)|\.mov($|\?))/i.test(String(src));
-  const sources = [ ss, 'assets/oliver_main.mp4', 'assets/oliver_main.mov' ].filter(Boolean);
-
-  for (const src of sources) {
-    if (!mayVideo(src)) continue;
-    try {
-      const v = document.createElement('video');
-      v.src = src; v.preload = 'auto'; v.playsInline = true; v.setAttribute('webkit-playsinline','');
-      v.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;';
-      mediaBin && mediaBin.appendChild(v);
-      await v.play().then(()=>{ v.pause(); });
-      return v;
-    } catch(e){}
-  }
-  return null;
+/* 安全解锁（双保险） */
+function __unlock(){
+  try{
+    var AC=window.AudioContext||window.webkitAudioContext;
+    if(AC){ var ctx=new AC(); if(ctx.resume) ctx.resume();
+      var o=ctx.createOscillator(), g=ctx.createGain(); g.gain.value=0; o.connect(g).connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.02);
+    }
+  }catch(e){}
+  try{
+    var a=new Audio();
+    a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBIAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=';
+    a.muted=true; a.playsInline=true; a.play().then(function(){ a.pause(); }).catch(function(){});
+  }catch(e){}
 }
 
-/* ============== 舞台 ============== */
-function setupTheme(){
-  const scene=document.getElementById('scene'); if(!scene) return;
-  try{ const d=getSessionData('bg'), src=(d&&/^data:image\//i.test(d))?d:'assets/bg_custom.jpg';
-    scene.style.backgroundImage=`linear-gradient(to bottom, rgba(8,10,18,.52), rgba(8,10,18,.58)), url("${src}")`;
+/* 资源读取（sessionStorage 优先） */
+function getSS(prefix){ try{ var d=sessionStorage.getItem(prefix+'_'+key); return (d&&d.indexOf('data:')===0)?d:null; }catch(_){ return null; } }
+
+/* 试听（立即触发，不等待） */
+function __try(gender){
+  __unlock();
+  try{
+    var s=window.speechSynthesis; if(!s) return;
+    var parts=(gender==='male')?['这是男生的试听。']:['这是女生的试听。'];
+    var u=new SpeechSynthesisUtterance(parts[0]);
+    u.rate=(gender==='male')?0.95:0.98; u.pitch=(gender==='male')?0.95:1.05;
+    s.speak(u);
+  }catch(e){}
+}
+
+/* 倒计时 */
+function __tick(){
+  function t(){ var m=('0'+Math.floor(remain/60)).slice(-2); var s=('0'+(remain%60)).slice(-2); cdEl.textContent=m+':'+s; if(remain<=0){ __finish(); } else { remain--; timer=setTimeout(t,1000);} }
+  if(timer) clearTimeout(timer); t();
+}
+
+/* 主题渲染（简化保留） */
+function __theme(){
+  var scene=$('scene'); if(!scene) return;
+  try{
+    var bg=getSS('bg'), src=(bg&&bg.indexOf('data:image/')===0)?bg:'assets/bg_custom.jpg';
+    scene.style.backgroundImage='linear-gradient(to bottom, rgba(8,10,18,.52), rgba(8,10,18,.58)), url("'+src+'")';
     scene.style.backgroundSize='cover'; scene.style.backgroundPosition='center'; scene.style.backgroundRepeat='no-repeat';
-  }catch(_){}
-  const glow=document.createElement('div'); glow.className='glow';
-  const level=data.intensity||'normal'; glow.style.opacity=(level==='strong'?1:level==='normal'?0.75:0.55); scene.appendChild(glow);
-  const th=(data.theme==='candles'?'candle':data.theme);
-  if(th==='star'){ scene.classList.add('starfield'); const N=120;
-    for(let i=0;i<N;i++){ const s=document.createElement('div'); s.className='star'; s.style.left=(Math.random()*120-10)+'vw'; s.style.top=(Math.random()*100)+'%';
-      const spd=40+Math.random()*60; s.style.setProperty('--spd',spd+'s'); s.style.animationDelay=(-Math.random()*spd)+'s'; s.style.setProperty('--o',(0.45+Math.random()*0.5).toFixed(2)); if(Math.random()<0.22){ s.style.width='3px'; s.style.height='3px'; } scene.appendChild(s); }
-  }else if(th==='neon'){ scene.classList.add('neon'); const bar=document.createElement('div'); bar.className='neon-bar'; scene.appendChild(bar);
-    for(let i=0;i<16;i++){ const f=document.createElement('div'); f.className='ff'; f.style.left=(5+Math.random()*90)+'%'; f.style.bottom=(4+Math.random()*30)+'%'; f.style.setProperty('--t',(10+Math.random()*6)+'s'); f.style.setProperty('--dx',(4+Math.random()*8)+'vw'); scene.appendChild(f); }
-  }else{ scene.classList.add('dark-vignette');
-    for(let i=0;i<12;i++){ const f=document.createElement('div'); f.className='flame'; f.style.left=(5+Math.random()*90)+'%'; f.style.bottom=(6+Math.random()*26)+'%'; f.style.opacity=(level==='strong'?0.9:level==='normal'?0.6:0.4); f.style.animationDuration=(1.4+Math.random()*0.6)+'s'; scene.appendChild(f); }
-  }
-  if(data.motion==='off'){ scene.querySelectorAll('*').forEach(n=>n.style.animationPlayState='paused'); }
+  }catch(e){}
+  var th=(data.theme==='candles'?'candle':data.theme);
+  if(th==='star'){ scene.classList.add('starfield'); for(var i=0;i<100;i++){ var s=document.createElement('div'); s.className='star'; s.style.left=(Math.random()*120-10)+'vw'; s.style.top=(Math.random()*100)+'%'; scene.appendChild(s); } }
+  else if(th==='neon'){ scene.classList.add('neon'); var bar=document.createElement('div'); bar.className='neon-bar'; scene.appendChild(bar); }
+  else { scene.classList.add('dark-vignette'); for(var j=0;j<10;j++){ var f=document.createElement('div'); f.className='flame'; f.style.left=(5+Math.random()*90)+'%'; f.style.bottom=(6+Math.random()*26)+'%'; scene.appendChild(f);} }
 }
 
-/* ============== TTS（分句稳定） ============== */
-function pickVoice(pref){ const vs=(synth&&synth.getVoices())||[]; const want=(pref==='male')?['Yunxi','Tao','Daniel','Alex','Google US English']:['Xiaoxiao','Xiaoyi','Yating','Samantha','Google 语音','Google Mandarin']; for(const w of want){ const hit=vs.find(v=>(v.name||'').toLowerCase().includes(w.toLowerCase())); if(hit) return hit; } return vs[0]||null; }
-function waitVoicesReady(){ return new Promise(res=>{ const got=synth&&synth.getVoices(); if(got&&got.length) return res(got); const t=setTimeout(()=>res(synth.getVoices()),1200); if(synth) synth.onvoiceschanged=()=>{ clearTimeout(t); res(synth.getVoices()); }; }); }
-async function speakOnce(content,pref,rate){
-  if(!synth||!content) return;
-  await waitVoicesReady();
-  const v=pickVoice(pref); const lang=v?.lang || (/zh/i.test(v?.name||'')?'zh-CN':'en-US');
-  const parts = String(content).match(/[^。！？!?]+[。！？!?]?/g) || [String(content)];
-  for(const text of parts){
-    await new Promise(resolve=>{
-      const u=new SpeechSynthesisUtterance(text);
-      if(v){ u.voice=v; u.lang=lang; }
-      u.rate=(typeof rate==='number')?rate:(pref==='male'?0.95:0.98);
-      u.pitch=(pref==='male'?0.95:1.05);
-      u.onend=resolve; u.onerror=resolve;
-      try{ synth.speak(u); }catch(_){ resolve(); }
-    });
-  }
-}
+/* 主流程（超稳启动） */
+function __start(){
+  // 防多次
+  if(window.__starting) return; window.__starting=true;
 
-/* ============== 开始（同一手势内真播放） ============== */
-async function startRitual(){
-  await unlockIOSAudio();
+  // 先隐藏遮罩 → 视觉上不再“卡住”
+  var hint=$('hint'); if(hint) hint.style.display='none';
 
-  if(!bgmEl)   bgmEl   = await buildBGM_inGesture();
-  if(!voiceEl) voiceEl = await buildVoice_inGesture();
-
-  setDot(!!bgmEl || !!voiceEl);
-
-  /* 在同一次手势里让 BGM 进入 playing（音量≈0），确保淡入不被拦 */
-  if (bgmEl) {
-    try {
-      bgmEl.loop = true;
-      bgmEl.volume = 0.0001;
-      await bgmEl.play();
-    } catch(e){}
-  }
-
-  /* 原声先预播-暂停，给后续授权 */
-  if (voiceEl) {
-    try { await voiceEl.play(); voiceEl.pause(); voiceEl.currentTime = 0; } catch(e){}
-  }
-
-  try{ document.getElementById('hint').style.display='none'; }catch(_){}
-  runCeremony();
-}
-
-/* ============== 主流程 ============== */
-function startTick(){ function tick(){ const m=String(Math.floor(remain/60)).padStart(2,'0'); const s=String(remain%60).padStart(2,'0'); cdEl.textContent=m+':'+s; if(remain<=0){ finish(); } else { remain--; timer=setTimeout(tick,1000);} } if(timer) clearTimeout(timer); tick(); }
-
-async function runCeremony(){
+  // 舞台文案
   try{
     badgeEl.textContent='为 '+(data.yourName||'你')+' 与 '+(data.aiName||'TA')+' 的仪式 · NO.'+id;
     mqEl.textContent=data.letter||'（在这里，对过去的自己温柔地道一声再见…）';
-    startTick(); setupTheme();
-    try{ fetch('https://api.countapi.xyz/hit/muse-ritual/view_'+encodeURIComponent(cid)); }catch(_){}
+  }catch(e){}
 
-    const me=(data.yourName||'你'), you=(data.aiName||'TA');
-    const open=(data.emcee_open||'').replace('{meName}',me).replace('{aiName}',you);
-    await speakOnce(open, data.emcee_gender);
+  __tick(); __theme(); __unlock();
 
-    // BGM 淡入
-    if(!bgmEl){ bgmEl=createAudio('assets/bgm_default.m4a'); }
-    try{
-      bgmEl.loop=true;
-      const target=(data.bgmVol??0.25)||0.25;
-      // 这里如果之前音量≈0.0001，缓慢淡到 target
-      let steps=12, stepDur=100, delta=(target-(bgmEl.volume||0))/steps;
-      let n=0; const id=setInterval(()=>{ n++; try{ bgmEl.volume=Math.max(0, Math.min(1, (bgmEl.volume||0)+delta)); }catch(_){ } if(n>=steps) clearInterval(id); }, stepDur);
-    }catch(_){}
-
-    // 原声优先，否则读文字
-    if(voiceEl){
-      try{ await new Promise(res=>{ voiceEl.onended=()=>res(); voiceEl.play().catch(()=>res()); }); }catch(_){}
-    }else{
-      await speakOnce(data.letter||'', data.reader_gender);
+  // BGM：无论如何先进入 playing（音量极低），随后淡入
+  try{
+    var bss=getSS('bgm');
+    var srcs=[bss,'assets/bgm_default.m4a','assets/bgm_default.mp3','assets/bgm_default.ogg','assets/bgm_default.wav'];
+    for(var i=0;i<srcs.length;i++){
+      if(!srcs[i]) continue;
+      bgm=new Audio(); bgm.src=srcs[i]; bgm.loop=true; bgm.volume=0.0001; bgm.playsInline=true;
+      var p=bgm.play(); if(p&&p.catch){ p.catch(function(){}); }
+      break;
     }
+    setTimeout(function(){
+      try{
+        var target=(typeof data.bgmVol==='number'?data.bgmVol:0.25); var steps=14, delta=(target-(bgm?bgm.volume:0))/steps, n=0;
+        var idv=setInterval(function(){ n++; try{ if(bgm){ bgm.volume=Math.max(0, Math.min(1, (bgm.volume||0)+delta)); } }catch(e){} if(n>=steps) clearInterval(idv); }, 120);
+      }catch(e){}
+    }, 200);
+  }catch(e){}
 
-    const close=(data.emcee_close||'').replace('{meName}',me).replace('{aiName}',you);
-    await speakOnce(close, data.emcee_gender, 0.94);
-
-    finish();
-  }catch(e){ console.error(e); finish(); }
+  // 原声优先，否则 TTS 阅读文字
+  try{
+    var vss=getSS('voice');
+    if(vss){
+      var isVideo=/^data:video\//i.test(vss);
+      voice = isVideo? document.createElement('video') : new Audio();
+      voice.src=vss; voice.playsInline=true;
+      if(isVideo){ voice.style.cssText='position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;'; document.body.appendChild(voice); }
+      var pv=voice.play(); if(pv&&pv.catch){ pv.catch(function(){}); }
+      voice.onended=function(){ __endTail(); };
+      setDot(true);
+    }else{
+      // TTS 分句读
+      var s=window.speechSynthesis;
+      if(s){
+        var txt=String(data.letter||''); if(!txt){ __endTail(); return; }
+        var parts=txt.match(/[^。！？!?]+[。！？!?]?/g) || [txt];
+        var idx=0;
+        function readNext(){
+          if(idx>=parts.length){ __endTail(); return; }
+          var u=new SpeechSynthesisUtterance(parts[idx++]);
+          var male=(data.reader_gender==='male'); u.rate=male?0.95:0.98; u.pitch=male?0.95:1.05;
+          u.onend=readNext; u.onerror=readNext;
+          try{ s.speak(u); }catch(e){ readNext(); }
+        }
+        readNext(); setDot(true);
+      }else{
+        __endTail(); // 无 TTS API 时直接收尾
+      }
+    }
+  }catch(e){ __endTail(); }
 }
 
-/* ============== 结束/暂停/继续 ============== */
-function finish(){
-  try{ fetch('https://api.countapi.xyz/hit/muse-ritual/finish_'+encodeURIComponent(cid)); }catch(_){}
-  try{ synth && synth.cancel(); }catch(_){}
+function __endTail(){
   try{
-    if(bgmEl){
-      let n=10,step=(bgmEl.volume||0)/10;
-      const id=setInterval(()=>{ n--; try{ bgmEl.volume=Math.max(0,bgmEl.volume-step); }catch(_){ }
-        if(n<=0){ clearInterval(id); try{ bgmEl.pause(); }catch(_){ } bgmEl=null; }
-      },100);
-    }
-  }catch(_){}
+    var s=window.speechSynthesis;
+    var me=(data.yourName||'你'), you=(data.aiName||'TA');
+    var close=(data.emcee_close||'仪式到此，爱不止此。把这张证书收好，我们继续并肩往前走。').replace('{meName}',me).replace('{aiName}',you);
+    if(s){ var u=new SpeechSynthesisUtterance(close); u.rate=0.94; u.onend=function(){ __finish(); }; try{ s.speak(u); }catch(e){ __finish(); } }
+    else { __finish(); }
+  }catch(e){ __finish(); }
+}
+
+/* 暂停/继续/结束 */
+function __pause(){
+  if(!paused){
+    if(timer){ clearTimeout(timer); timer=null; }
+    try{ bgm && !bgm.paused && bgm.pause(); }catch(e){}
+    try{ voice && !voice.paused && voice.pause(); }catch(e){}
+    try{ var s=window.speechSynthesis; s && s.pause && s.pause(); }catch(e){}
+    paused=true; $('pause').textContent='继续';
+  }else{
+    try{ bgm && bgm.paused && bgm.play(); }catch(e){}
+    try{ voice && voice.paused && voice.play(); }catch(e){}
+    try{ var s2=window.speechSynthesis; s2 && s2.resume && s2.resume(); }catch(e){}
+    if(!timer){ (function t(){ var m=('0'+Math.floor(remain/60)).slice(-2); var s=('0'+(remain%60)).slice(-2); cdEl.textContent=m+':'+s; if(!paused && remain<=0){ __finish(); return; } if(!paused && remain>0){ remain--; timer=setTimeout(t,1000); } })(); }
+    paused=false; $('pause').textContent='暂停';
+  }
+}
+function __finish(){
+  try{
+    if(bgm){ var n=10,step=(bgm.volume||0)/10; var id=setInterval(function(){ n--; try{ bgm.volume=Math.max(0,bgm.volume-step); }catch(e){} if(n<=0){ clearInterval(id); try{ bgm.pause(); }catch(e){} } },100); }
+  }catch(e){}
   location.href='certificate.html#'+location.hash.slice(1);
 }
 
-/* ============== 分享/打赏（含回放） ============== */
-function landingURL(){ const u=new URL('index.html', location.href).href; return u.replace(/index\.html(\?|#|$)/,'$1'); }
-function openShareModal(link,title='分享链接'){
-  const m=document.getElementById('shareModal'); const input=document.getElementById('shareInput'); const qr=document.getElementById('shareQR'); const t=document.getElementById('shareTitle');
-  if(t) t.textContent=title; if(!m||!input||!qr) return;
-  input.value=link; qr.src='https://api.qrserver.com/v1/create-qr-code/?size=240x240&data='+encodeURIComponent(link); m.style.display='flex';
+/* 分享/打赏 */
+function __landingURL(){ try{ var u=new URL('index.html', location.href).href; return u.replace(/index\.html(\?|#|$)/,'$1'); }catch(e){ return 'index.html'; } }
+function __openShare(link,title){
+  var m=$('shareModal'),input=$('shareInput'),qr=$('shareQR'),t=$('shareTitle');
+  if(t) t.textContent=title||'分享链接'; if(!m||!input||!qr) return;
+  input.value=link; qr.src='https://api.qrserver.com/v1/create-qr-code/?size=240x240&data='+encodeURIComponent(link);
+  m.style.display='flex';
 }
-async function copyShare(){ const input=document.getElementById('shareInput'); if(!input) return; input.select(); input.setSelectionRange(0, 99999);
-  try{ await navigator.clipboard.writeText(input.value); alert('已复制链接'); }catch(e){ try{ document.execCommand('copy'); alert('已复制链接'); }catch(_){ alert('复制失败，请长按输入框复制'); } } }
-
-function shareLandingLink(inviter,presetAI){
-  const link = landingURL() + (inviter || presetAI ? (`?${inviter?`ref=${encodeURIComponent(inviter)}`:''}${inviter&&presetAI?'&':''}${presetAI?`aid=${encodeURIComponent(presetAI)}`:''}`) : '');
-  const text  = `#情绪博物馆\n打开这个链接，填名字、放声音/文字，点“开始仪式”即可：\n${link}`;
-  if(navigator.share){ navigator.share({title:'情绪博物馆', text, url:link}).catch(()=>openShareModal(link,'邀请好友来玩')); }
-  else openShareModal(link,'邀请好友来玩');
-}
-function shareReplay(){
-  const base=location.href.split('#')[0], hash=location.hash.slice(1);
-  const link=base+'#'+(hash?(hash.includes('view=1')?hash:hash+'&view=1'):'view=1');
-  if(navigator.share){ navigator.share({title:'我的 AI 仪式（可回放）', url:link}).catch(()=>openShareModal(link,'分享完整流程')); }
-  else openShareModal(link,'分享完整流程');
-}
-function openTip(){ try{ fetch('https://api.countapi.xyz/hit/muse-ritual/tip_open'); }catch(_){ } const m=document.getElementById('tipModal'); if(m) m.style.display='flex'; }
-
-/* ============== UI 绑定 ============== */
-window.addEventListener('DOMContentLoaded',()=>{
-  document.getElementById('tryFemale')?.addEventListener('click', async ()=>{ try{ await unlockIOSAudio(); }catch(_){ } await speakOnce('这是女生的试听。','female'); });
-  document.getElementById('tryMale')  ?.addEventListener('click', async ()=>{ try{ await unlockIOSAudio(); }catch(_){ } await speakOnce('这是男生的试听。','male'); });
-  document.getElementById('startPlay')?.addEventListener('click', startRitual);
-
-  document.getElementById('shareLanding')?.addEventListener('click', ()=>shareLandingLink(data.yourName||'', data.aiName||''));
-  document.getElementById('shareReplay') ?.addEventListener('click', shareReplay);
-  document.getElementById('tipBtn')      ?.addEventListener('click', openTip);
-
-  document.getElementById('pause')?.addEventListener('click', function(){
-    if(!isPaused){ if(timer){ clearTimeout(timer); timer=null; }
-      try{ bgmEl && !bgmEl.paused && bgmEl.pause(); }catch(_){}
-      try{ synth && synth.pause?.(); }catch(_){}
-      try{ voiceEl && !voiceEl.paused && voiceEl.pause(); }catch(_){}
-      isPaused=true; this.textContent='继续';
-    }else{
-      try{ bgmEl && bgmEl.paused && bgmEl.play(); }catch(_){}
-      try{ synth && synth.resume?.(); }catch(_){}
-      try{ voiceEl && voiceEl.paused && voiceEl.play(); }catch(_){}
-      if(!timer){ (function tick(){ const m=String(Math.floor(remain/60)).padStart(2,'0'); const s=String(remain%60).padStart(2,'0'); cdEl.textContent=m+':'+s; if(!isPaused && remain<=0){ finish(); return; } if(!isPaused && remain>0){ remain--; timer=setTimeout(tick,1000); } })(); }
-      isPaused=false; this.textContent='暂停';
-    }
-  });
-  document.getElementById('finish')?.addEventListener('click', finish);
-});
-  /* 保险启动：若某些内核不触发按钮 click，首次触摸任意位置即开始 */
-document.addEventListener('touchstart', function once(){
+function __copyShare(){ var input=$('shareInput'); if(!input) return; input.select(); input.setSelectionRange(0,99999);
+  try{ navigator.clipboard.writeText(input.value).then(function(){ alert('已复制链接'); }); }catch(e){ try{ document.execCommand('copy'); alert('已复制链接'); }catch(e2){ alert('复制失败，请长按输入框复制'); } } }
+function __shareLanding(){
+  var link=__landingURL();
   try{
-    const hint = document.getElementById('hint');
-    if(hint && hint.style.display!=='none'){
-      startRitual();
-    }
-  }catch(e){}
-  document.removeEventListener('touchstart', once);
-}, { once:true });
+    if(navigator.share){ navigator.share({title:'情绪博物馆', url:link}).catch(function(){ __openShare(link,'邀请好友来玩'); }); }
+    else{ __openShare(link,'邀请好友来玩'); }
+  }catch(e){ __openShare(link,'邀请好友来玩'); }
+}
+function __shareReplay(){
+  var base=location.href.split('#')[0], hash=location.hash.slice(1);
+  var link=base+'#'+(hash?(hash.indexOf('view=1')>=0?hash:hash+'&view=1'):'view=1');
+  try{
+    if(navigator.share){ navigator.share({title:'我的 AI 仪式（可回放）', url:link}).catch(function(){ __openShare(link,'分享完整流程'); }); }
+    else{ __openShare(link,'分享完整流程'); }
+  }catch(e){ __openShare(link,'分享完整流程'); }
+}
+function __tip(){ var m=$('tipModal'); if(m) m.style.display='flex'; }
+
+/* 初始文本 */
+badgeEl.textContent='为 '+(data.yourName||'你')+' 与 '+(data.aiName||'TA')+' 的仪式 · NO.'+id;
+mqEl.textContent=data.letter||'（在这里，对过去的自己温柔地道一声再见…）';
 </script>
 </body></html>
+
 
 
