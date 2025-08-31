@@ -216,8 +216,9 @@ qs('start').addEventListener('click', async ()=>{
   }else if(iFile){ alert('背景图较大（>1.2MB），本次不随页；可压小或放到 assets/bg_custom.jpg'); }
 
   const b64=btoa(unescape(encodeURIComponent(JSON.stringify(data))));
-  location.href='./'+CORE_PAGE+'?v=unlock#'+b64;
+  location.href = './' + CORE_PAGE + (location.search || ('?v=' + Date.now())) + '#' + b64;
 });
 </script>
 </body></html>
+
 
