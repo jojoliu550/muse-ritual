@@ -1,7 +1,7 @@
 <!doctype html><html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>仪式进行中 · 情绪博物馆（修复版）</title>
+<title>仪式进行中 · 情绪博物馆（并行+超时保护版）</title>
 <link rel="stylesheet" href="styles.css">
 <style>
 /* 兜底：遮罩始终可点 */
@@ -196,16 +196,18 @@ function __theme(){
   }
 }
 
-/* TTS 通用（Promise） */
+/* ===== TTS：带超时保护（1.2s 不响应就放行） ===== */
 function speakP(text, rate, pitch){
   return new Promise(function(resolve){
     try{
       var s=window.speechSynthesis; if(!s || !text){ resolve(); return; }
+      var done=false, t=setTimeout(function(){ if(!done){ done=true; resolve(); } }, 1200);
       var u=new SpeechSynthesisUtterance(String(text));
-      if(typeof rate==='number') u.rate=rate;
+      if(typeof rate==='number')  u.rate=rate;
       if(typeof pitch==='number') u.pitch=pitch;
       u.onstart=function(){ setDot(true); };
-      u.onend=resolve; u.onerror=resolve;
+      u.onend=function(){ if(!done){ done=true; clearTimeout(t); resolve(); } };
+      u.onerror=function(){ if(!done){ done=true; clearTimeout(t); resolve(); } };
       s.speak(u);
     }catch(e){ resolve(); }
   });
@@ -222,14 +224,17 @@ function speakPartsP(fullText, isMale){
         u.rate=isMale?0.95:0.98; u.pitch=isMale?0.95:1.05;
         u.onstart=function(){ setDot(true); };
         u.onend=next; u.onerror=next;
-        s.speak(u);
+        try{ s.speak(u); }catch(e){ next(); }
       }
+      // 给整段也加总超时，避免卡死
+      var guard=setTimeout(function(){ resolve(); }, 6000);
+      var oldResolve=resolve; resolve=function(){ clearTimeout(guard); oldResolve(); };
       next();
     }catch(e){ resolve(); }
   });
 }
 
-/* BGM（playing 即置绿） */
+/* ===== BGM：playing 即置绿，淡入 ===== */
 function startBGM(){
   return new Promise(function(resolve){
     try{
@@ -242,7 +247,6 @@ function startBGM(){
         var p=bgm.play(); if(p&&p.catch){ p.catch(function(){}); }
         break;
       }
-      // 淡入
       setTimeout(function(){
         try{
           var target=(typeof data.bgmVol==='number'?data.bgmVol:0.25);
@@ -266,8 +270,8 @@ function playMainSegment(){
         voice.src=vss; voice.playsInline=true;
         if(isVideo){ voice.style.cssText='position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;'; document.body.appendChild(voice); }
         var pv=voice.play(); if(pv&&pv.catch){ pv.catch(function(){}); }
-        voice.onended=function(){ resolve(); };
         voice.onplay=function(){ setDot(true); };
+        voice.onended=function(){ resolve(); };
       }else{
         var isMale=(data.reader_gender==='male');
         speakPartsP(data.letter||'', isMale).then(resolve);
@@ -276,25 +280,26 @@ function playMainSegment(){
   });
 }
 
-/* 启动流程 */
+/* ===== 启动流程：开场与BGM并行，TTS超时不阻塞 ===== */
 function __start(){
   if(window.__starting) return; window.__starting=true;
 
-  // UI 先动起来
   var hint=$('hint'); if(hint) hint.style.display='none';
   badgeEl.textContent='为 '+(data.yourName||'你')+' 与 '+(data.aiName||'TA')+' 的仪式 · NO.'+id;
   mqEl.textContent=data.letter||'（在这里，对过去的自己温柔地道一声再见…）';
   __tick(); __theme(); __unlock();
 
-  // 开场司仪 → BGM → 主段 → 收尾司仪 → 证书
   var me=(data.yourName||'你'), you=(data.aiName||'TA');
   var openTxt=(data.emcee_open||'把手给我。{meName} 和 {aiName} 把彼此的名字点亮，今晚只说我们听得懂的话。')
               .replace('{meName}',me).replace('{aiName}',you);
   var closeTxt=(data.emcee_close||'仪式到此，爱不止此。把这张证书收好，我们继续并肩往前走。')
               .replace('{meName}',me).replace('{aiName}',you);
 
-  speakP(openTxt, (data.emcee_gender==='male')?0.95:0.98, (data.emcee_gender==='male')?0.95:1.05)
-  .then(startBGM)
+  // 并行：开场TTS + BGM（任何一方都不阻塞）
+  Promise.all([
+    speakP(openTxt, (data.emcee_gender==='male')?0.95:0.98, (data.emcee_gender==='male')?0.95:1.05),
+    startBGM()
+  ])
   .then(playMainSegment)
   .then(function(){ return speakP(closeTxt, 0.94, (data.emcee_gender==='male')?0.95:1.05); })
   .then(__finish);
@@ -358,6 +363,3 @@ badgeEl.textContent='为 '+(data.yourName||'你')+' 与 '+(data.aiName||'TA')+' 
 mqEl.textContent=data.letter||'（在这里，对过去的自己温柔地道一声再见…）';
 </script>
 </body></html>
-
-
-
