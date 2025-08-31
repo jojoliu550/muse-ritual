@@ -1,7 +1,7 @@
 <!doctype html><html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>仪式进行中 · 情绪博物馆（不提前结束版）</title>
+<title>仪式进行中 · 情绪博物馆（真实时间倒计时版）</title>
 <link rel="stylesheet" href="styles.css">
 <style>
 .hint-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9999}
@@ -110,7 +110,7 @@
 </div>
 
 <script>
-/* ===== 工具 & 数据 ===== */
+/* ===== 小工具 & 数据 ===== */
 function $(id){ return document.getElementById(id); }
 function parseData(){
   try{
@@ -133,9 +133,9 @@ function setDot(ok){ var d=$('soundDot'); if(d) d.style.background=ok?'#2ecc71':
 
 /* 舞台/计时/状态 */
 var badgeEl=$('badge'), cdEl=$('countdown'), mqEl=$('marquee');
-var remain=Number(data.duration)||180, timer=null, paused=false;
-var bgm=null, voice=null;
+var paused=false, bgm=null, voice=null;
 var narrationDone=false;
+var endAt=0, tickTimer=null; // 用真实时间计算剩余秒
 
 /* 解锁（双保险） */
 function __unlock(){
@@ -165,23 +165,26 @@ function __try(gender){
   }catch(e){}
 }
 
-/* 倒计时：到 00:00 后等待旁白结束再跳转 */
-function __tick(){
-  function t(){
-    var m=('0'+Math.floor(remain/60)).slice(-2);
-    var s=('0'+(remain%60)).slice(-2);
-    cdEl.textContent=m+':'+s;
-    if(remain<=0){
-      if(narrationDone){ __finish(); } else { timer=setTimeout(t,500); }
+/* ===== 真实时间倒计时 ===== */
+function fmt(sec){ var m=('0'+Math.floor(sec/60)).slice(-2); var s=('0'+(sec%60)).slice(-2); return m+':'+s; }
+function startClock(seconds){
+  endAt = Date.now() + seconds*1000;
+  function loop(){
+    if(paused){ tickTimer=setTimeout(loop,300); return; }
+    var left = Math.max(0, Math.ceil((endAt - Date.now())/1000));
+    cdEl.textContent = fmt(left);
+    if(left===0){
+      if(narrationDone){ __finish(); return; }
+      tickTimer=setTimeout(loop, 400); // 等旁白读完
     }else{
-      remain--; timer=setTimeout(t,1000);
+      tickTimer=setTimeout(loop, 250); // 高频更新更稳
     }
   }
-  if(timer) clearTimeout(timer);
-  t();
+  if(tickTimer) clearTimeout(tickTimer);
+  loop();
 }
 
-/* 舞台主题（加速星空） */
+/* 舞台主题（提速星空） */
 function __theme(){
   var scene=$('scene'); if(!scene) return;
   try{
@@ -192,10 +195,10 @@ function __theme(){
   var th=(data.theme==='candles'?'candle':data.theme);
   if(th==='star'){
     scene.classList.add('starfield');
-    for(var i=0;i<120;i++){
+    for(var i=0;i<130;i++){
       var s=document.createElement('div'); s.className='star';
       s.style.left=(Math.random()*120-10)+'vw'; s.style.top=(Math.random()*100)+'%';
-      s.style.setProperty('--spd', (18+Math.random()*16)+'s'); /* 更快的漂移 */
+      s.style.setProperty('--spd', (10+Math.random()*10)+'s'); // 更快的漂移
       s.style.opacity=0.5+Math.random()*0.45;
       scene.appendChild(s);
     }
@@ -236,7 +239,7 @@ function speakPartsP(fullText, isMale){
         u.onend=next; u.onerror=next;
         try{ s.speak(u); }catch(e){ next(); }
       }
-      // 总超时：最多读 6s（防卡）
+      // 总超时上限，避免卡住
       var guard=setTimeout(function(){ resolve(); }, 6000);
       var oldResolve=resolve; resolve=function(){ clearTimeout(guard); oldResolve(); };
       next();
@@ -259,7 +262,7 @@ function startBGM(){
       }
       setTimeout(function(){
         try{
-          var target=(typeof data.bgmVol==='number'?data.bgmVol:0.25);
+          var target=(typeof data.bgmVol==='number'?data.bgmVol:0.28);
           var steps=14, delta=(target-(bgm?bgm.volume:0))/steps, n=0;
           var idv=setInterval(function(){ n++; try{ if(bgm){ bgm.volume=Math.max(0, Math.min(1, (bgm.volume||0)+delta)); } }catch(e){} if(n>=steps) clearInterval(idv); }, 120);
         }catch(e){}
@@ -269,7 +272,7 @@ function startBGM(){
   });
 }
 
-/* 主段：原声优先，否则读 letter（无内容则直接继续） */
+/* 主段：原声优先，否则读 letter */
 function playMainSegment(){
   return new Promise(function(resolve){
     try{
@@ -292,14 +295,14 @@ function playMainSegment(){
   });
 }
 
-/* 启动流程：开场与BGM并行，结束后不直接跳证书，而是记为 narrationDone */
+/* ===== 启动流程（并行开场 + 实时倒计时 + 不提前结束） ===== */
 function __start(){
   if(window.__starting) return; window.__starting=true;
-
   var hint=$('hint'); if(hint) hint.style.display='none';
+
   badgeEl.textContent='为 '+(data.yourName||'你')+' 与 '+(data.aiName||'TA')+' 的仪式 · NO.'+id;
-  mqEl.textContent=data.letter||'（在这里，对过去的自己温柔地道一声再见…）';
-  __tick(); __theme(); __unlock();
+  mqEl.textContent=(data.letter||'（在这里，对过去的自己温柔地道一声再见…）');
+  __unlock(); __theme(); startClock(Number(data.duration)||180);
 
   var me=(data.yourName||'你'), you=(data.aiName||'TA');
   var openTxt=(data.emcee_open||'把手给我。{meName} 和 {aiName} 把彼此的名字点亮，今晚只说我们听得懂的话。').replace('{meName}',me).replace('{aiName}',you);
@@ -311,23 +314,24 @@ function __start(){
     .then(function(){ narrationDone=true; });
 }
 
-/* 提前结束按钮：立即跳证书 */
+/* 提前结束（按钮） */
 function __finishNow(){ narrationDone=true; __finish(); }
 
-/* 暂停/继续（不改倒计时语义） */
+/* 暂停/继续（基于真实时间） */
 function __pause(){
   if(!paused){
-    if(timer){ clearTimeout(timer); timer=null; }
+    paused=true; $('pause').textContent='继续';
     try{ bgm && !bgm.paused && bgm.pause(); }catch(e){}
     try{ voice && !voice.paused && voice.pause(); }catch(e){}
     try{ var s=window.speechSynthesis; s && s.pause && s.pause(); }catch(e){}
-    paused=true; $('pause').textContent='继续';
   }else{
+    paused=false; $('pause').textContent='暂停';
+    // 重新校准结束时间
+    var nowLeft = (function(){ var mm=$('countdown').textContent.split(':'); return (parseInt(mm[0]||'0',10)*60 + parseInt(mm[1]||'0',10))||0; })();
+    endAt = Date.now() + nowLeft*1000;
     try{ bgm && bgm.paused && bgm.play(); }catch(e){}
     try{ voice && voice.paused && voice.play(); }catch(e){}
     try{ var s2=window.speechSynthesis; s2 && s2.resume && s2.resume(); }catch(e){}
-    if(!timer){ (function t(){ var m=('0'+Math.floor(remain/60)).slice(-2); var s=('0'+(remain%60)).slice(-2); cdEl.textContent=m+':'+s; if(!paused && remain<=0){ if(narrationDone){ __finish(); } else { timer=setTimeout(t,500); } return; } if(!paused && remain>0){ remain--; timer=setTimeout(t,1000); } })(); }
-    paused=false; $('pause').textContent='暂停';
   }
 }
 
@@ -374,4 +378,5 @@ badgeEl.textContent='为 '+(data.yourName||'你')+' 与 '+(data.aiName||'TA')+' 
 mqEl.textContent=data.letter||'（在这里，对过去的自己温柔地道一声再见…）';
 </script>
 </body></html>
+
 
