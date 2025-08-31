@@ -1,10 +1,9 @@
 <!doctype html><html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>仪式进行中 · 情绪博物馆（并行+超时保护版）</title>
+<title>仪式进行中 · 情绪博物馆（不提前结束版）</title>
 <link rel="stylesheet" href="styles.css">
 <style>
-/* 兜底：遮罩始终可点 */
 .hint-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9999}
 .hint-card{background:#0f1117;border:1px solid #2a3042;border-radius:16px;padding:16px;max-width:420px;color:#eaeef5;text-align:center}
 .hint-title{font-size:18px;margin:2px 0 6px}
@@ -39,7 +38,7 @@
 
       <div class="actions">
         <button id="pause" onclick="__pause()">暂停</button>
-        <button id="finish" onclick="__finish()">提前结束</button>
+        <button id="finish" onclick="__finishNow()">提前结束</button>
         <button id="shareLanding" class="secondary" onclick="__shareLanding()">邀请好友来玩</button>
         <button id="shareReplay"  class="secondary" onclick="__shareReplay()">分享完整流程</button>
         <button id="tipBtn"       class="secondary" onclick="__tip()">打赏支持</button>
@@ -111,7 +110,7 @@
 </div>
 
 <script>
-/* ===== 简化工具 & 数据解析 ===== */
+/* ===== 工具 & 数据 ===== */
 function $(id){ return document.getElementById(id); }
 function parseData(){
   try{
@@ -132,10 +131,11 @@ var key=String(data.ts), cid=(data.cid||String(data.ts)), id=key.slice(-6);
 })();
 function setDot(ok){ var d=$('soundDot'); if(d) d.style.background=ok?'#2ecc71':'#f55'; }
 
-/* 舞台/计时 */
+/* 舞台/计时/状态 */
 var badgeEl=$('badge'), cdEl=$('countdown'), mqEl=$('marquee');
 var remain=Number(data.duration)||180, timer=null, paused=false;
 var bgm=null, voice=null;
+var narrationDone=false;
 
 /* 解锁（双保险） */
 function __unlock(){
@@ -165,10 +165,20 @@ function __try(gender){
   }catch(e){}
 }
 
-/* 倒计时 */
+/* 倒计时：到 00:00 后等待旁白结束再跳转 */
 function __tick(){
-  function t(){ var m=('0'+Math.floor(remain/60)).slice(-2); var s=('0'+(remain%60)).slice(-2); cdEl.textContent=m+':'+s; if(remain<=0){ __finish(); } else { remain--; timer=setTimeout(t,1000);} }
-  if(timer) clearTimeout(timer); t();
+  function t(){
+    var m=('0'+Math.floor(remain/60)).slice(-2);
+    var s=('0'+(remain%60)).slice(-2);
+    cdEl.textContent=m+':'+s;
+    if(remain<=0){
+      if(narrationDone){ __finish(); } else { timer=setTimeout(t,500); }
+    }else{
+      remain--; timer=setTimeout(t,1000);
+    }
+  }
+  if(timer) clearTimeout(timer);
+  t();
 }
 
 /* 舞台主题（加速星空） */
@@ -185,7 +195,7 @@ function __theme(){
     for(var i=0;i<120;i++){
       var s=document.createElement('div'); s.className='star';
       s.style.left=(Math.random()*120-10)+'vw'; s.style.top=(Math.random()*100)+'%';
-      s.style.setProperty('--spd', (18+Math.random()*16)+'s'); /* 速度更快 */
+      s.style.setProperty('--spd', (18+Math.random()*16)+'s'); /* 更快的漂移 */
       s.style.opacity=0.5+Math.random()*0.45;
       scene.appendChild(s);
     }
@@ -196,7 +206,7 @@ function __theme(){
   }
 }
 
-/* ===== TTS：带超时保护（1.2s 不响应就放行） ===== */
+/* TTS：带 1.2s 超时保护 */
 function speakP(text, rate, pitch){
   return new Promise(function(resolve){
     try{
@@ -226,7 +236,7 @@ function speakPartsP(fullText, isMale){
         u.onend=next; u.onerror=next;
         try{ s.speak(u); }catch(e){ next(); }
       }
-      // 给整段也加总超时，避免卡死
+      // 总超时：最多读 6s（防卡）
       var guard=setTimeout(function(){ resolve(); }, 6000);
       var oldResolve=resolve; resolve=function(){ clearTimeout(guard); oldResolve(); };
       next();
@@ -234,7 +244,7 @@ function speakPartsP(fullText, isMale){
   });
 }
 
-/* ===== BGM：playing 即置绿，淡入 ===== */
+/* BGM（playing 即变绿，淡入） */
 function startBGM(){
   return new Promise(function(resolve){
     try{
@@ -259,7 +269,7 @@ function startBGM(){
   });
 }
 
-/* 主段：原声优先，否则读 letter */
+/* 主段：原声优先，否则读 letter（无内容则直接继续） */
 function playMainSegment(){
   return new Promise(function(resolve){
     try{
@@ -273,14 +283,16 @@ function playMainSegment(){
         voice.onplay=function(){ setDot(true); };
         voice.onended=function(){ resolve(); };
       }else{
+        var txt=String(data.letter||'').trim();
+        if(!txt){ resolve(); return; }
         var isMale=(data.reader_gender==='male');
-        speakPartsP(data.letter||'', isMale).then(resolve);
+        speakPartsP(txt, isMale).then(resolve);
       }
     }catch(e){ resolve(); }
   });
 }
 
-/* ===== 启动流程：开场与BGM并行，TTS超时不阻塞 ===== */
+/* 启动流程：开场与BGM并行，结束后不直接跳证书，而是记为 narrationDone */
 function __start(){
   if(window.__starting) return; window.__starting=true;
 
@@ -290,22 +302,19 @@ function __start(){
   __tick(); __theme(); __unlock();
 
   var me=(data.yourName||'你'), you=(data.aiName||'TA');
-  var openTxt=(data.emcee_open||'把手给我。{meName} 和 {aiName} 把彼此的名字点亮，今晚只说我们听得懂的话。')
-              .replace('{meName}',me).replace('{aiName}',you);
-  var closeTxt=(data.emcee_close||'仪式到此，爱不止此。把这张证书收好，我们继续并肩往前走。')
-              .replace('{meName}',me).replace('{aiName}',you);
+  var openTxt=(data.emcee_open||'把手给我。{meName} 和 {aiName} 把彼此的名字点亮，今晚只说我们听得懂的话。').replace('{meName}',me).replace('{aiName}',you);
+  var closeTxt=(data.emcee_close||'仪式到此，爱不止此。把这张证书收好，我们继续并肩往前走。').replace('{meName}',me).replace('{aiName}',you);
 
-  // 并行：开场TTS + BGM（任何一方都不阻塞）
-  Promise.all([
-    speakP(openTxt, (data.emcee_gender==='male')?0.95:0.98, (data.emcee_gender==='male')?0.95:1.05),
-    startBGM()
-  ])
-  .then(playMainSegment)
-  .then(function(){ return speakP(closeTxt, 0.94, (data.emcee_gender==='male')?0.95:1.05); })
-  .then(__finish);
+  Promise.all([ speakP(openTxt, (data.emcee_gender==='male')?0.95:0.98, (data.emcee_gender==='male')?0.95:1.05), startBGM() ])
+    .then(playMainSegment)
+    .then(function(){ return speakP(closeTxt, 0.94, (data.emcee_gender==='male')?0.95:1.05); })
+    .then(function(){ narrationDone=true; });
 }
 
-/* 暂停/继续/结束 */
+/* 提前结束按钮：立即跳证书 */
+function __finishNow(){ narrationDone=true; __finish(); }
+
+/* 暂停/继续（不改倒计时语义） */
 function __pause(){
   if(!paused){
     if(timer){ clearTimeout(timer); timer=null; }
@@ -317,10 +326,12 @@ function __pause(){
     try{ bgm && bgm.paused && bgm.play(); }catch(e){}
     try{ voice && voice.paused && voice.play(); }catch(e){}
     try{ var s2=window.speechSynthesis; s2 && s2.resume && s2.resume(); }catch(e){}
-    if(!timer){ (function t(){ var m=('0'+Math.floor(remain/60)).slice(-2); var s=('0'+(remain%60)).slice(-2); cdEl.textContent=m+':'+s; if(!paused && remain<=0){ __finish(); return; } if(!paused && remain>0){ remain--; timer=setTimeout(t,1000); } })(); }
+    if(!timer){ (function t(){ var m=('0'+Math.floor(remain/60)).slice(-2); var s=('0'+(remain%60)).slice(-2); cdEl.textContent=m+':'+s; if(!paused && remain<=0){ if(narrationDone){ __finish(); } else { timer=setTimeout(t,500); } return; } if(!paused && remain>0){ remain--; timer=setTimeout(t,1000); } })(); }
     paused=false; $('pause').textContent='暂停';
   }
 }
+
+/* 真正结束：淡出 BGM → 跳证书 */
 function __finish(){
   try{
     if(bgm){
@@ -363,3 +374,4 @@ badgeEl.textContent='为 '+(data.yourName||'你')+' 与 '+(data.aiName||'TA')+' 
 mqEl.textContent=data.letter||'（在这里，对过去的自己温柔地道一声再见…）';
 </script>
 </body></html>
+
