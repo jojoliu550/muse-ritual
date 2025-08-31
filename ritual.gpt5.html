@@ -9,20 +9,20 @@
   <div class="card">
     <div id="scene" class="scene">
 
-      <!-- 开场遮罩 -->
-      <div id="hint" class="hint-overlay">
-        <div class="hint-card">
-          <div class="hint-title">准备开始</div>
-          <div class="hint-text">先点“试听”或“开始”，为 iPhone/微信开启声音</div>
-          <div class="hint-row">
-            <button id="tryFemale">试听女生</button>
-            <button id="tryMale">试听男生</button>
-          </div>
-          <button id="startPlay" class="primary">开始</button>
-        </div>
-      </div>
+     <!-- 开场遮罩（加入内联 onclick 兜底） -->
+<div id="hint" class="hint-overlay">
+  <div class="hint-card">
+    <div class="hint-title">准备开始</div>
+    <div class="hint-text">先点“试听”或“开始”，为 iPhone/微信开启声音</div>
+    <div class="hint-row">
+      <button id="tryFemale" onclick="try{unlockIOSAudio();speakOnce('这是女生的试听。','female');}catch(e){}">试听女生</button>
+      <button id="tryMale" onclick="try{unlockIOSAudio();speakOnce('这是男生的试听。','male');}catch(e){}">试听男生</button>
+    </div>
+    <button id="startPlay" class="primary" onclick="startRitual()">开始</button>
+  </div>
+</div>
 
-      <!-- 舞台信息/动作 -->
+     <!-- 舞台信息/动作 -->
       <div class="badge" id="badge"></div>
       <div class="countdown" id="countdown">--:--</div>
       <div class="marquee" id="marquee"></div>
@@ -355,4 +355,5 @@ document.addEventListener('touchstart', function once(){
 }, { once:true });
 </script>
 </body></html>
+
 
