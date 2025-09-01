@@ -1,13 +1,11 @@
 <!doctype html><html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>仪式进行中 · 情绪博物馆（稳定版v3：预热收尾+录音可见+统一暂停）</title>
+<title>仪式进行中 · 情绪博物馆（稳定版v4.1：+浏览量统计）</title>
 <link rel="stylesheet" href="styles.css">
 <style>
 .hint-overlay{position:fixed;inset:0;background:rgba(0,0,0,.50);display:flex;align-items:center;justify-content:center;z-index:9999}
-.hint-card{background:#0f1117;border:1px solid #2a3042;border-radius:16px;padding:16px;max-width:480px;color:#eaeef5;text-align:center;
-/* 关键：可滚动，防止按钮被挤没 */
-max-height:72vh;overflow:auto}
+.hint-card{background:#0f1117;border:1px solid #2a3042;border-radius:16px;padding:16px;max-width:480px;color:#eaeef5;text-align:center;max-height:72vh;overflow:auto}
 .hint-title{font-size:18px;margin:2px 0 8px}
 .hint-text{font-size:14px;color:#aab3cf;margin-bottom:12px}
 .hint-row{display:flex;gap:10px;justify-content:center;margin-bottom:10px;flex-wrap:wrap}
@@ -22,20 +20,20 @@ max-height:72vh;overflow:auto}
   <div class="card">
     <div id="scene" class="scene">
 
-      <!-- 开场遮罩：整块可触发 + 内联按钮 -->
-      <div id="hint" class="hint-overlay" ontouchstart="__start()" onclick="__start()">
-        <div class="hint-card">
+      <!-- 开场遮罩：点空白处或“开始”才启动；按钮不会穿透 -->
+      <div id="hint" class="hint-overlay" onclick="__maskTap(event)">
+        <div class="hint-card" onclick="event.stopPropagation()">
           <div class="hint-title">准备开始</div>
-          <div class="hint-text">点任意处或下方按钮开启声音（可先录 5–30 秒“原声”）</div>
+          <div class="hint-text">点空白处或“开始”授权音频；可先录 5–30 秒“原声”</div>
 
           <div class="hint-row">
-            <button onclick="__beep()">试听女生</button>
-            <button onclick="__beep()">试听男生</button>
-            <button id="recBtn" onclick="__toggleRec()">🎙️ 录音我的原声（上限30秒）</button>
+            <button onclick="__beep(event)">试听女生</button>
+            <button onclick="__beep(event)">试听男生</button>
+            <button id="recBtn" onclick="__toggleRec(event)">🎙️ 录音我的原声（上限30秒）</button>
           </div>
           <div id="recInfo" class="small" style="display:none"></div>
 
-          <button id="startPlay" class="primary" onclick="__start()">开始</button>
+          <button id="startPlay" class="primary" onclick="__start(event)">开始</button>
           <div class="small" style="margin-top:6px">说明：录音仅保存在本机临时内存，不上传</div>
         </div>
       </div>
@@ -53,7 +51,7 @@ max-height:72vh;overflow:auto}
         <button id="tipBtn"       class="secondary" onclick="__tip()">打赏支持</button>
       </div>
     </div>
-    <p class="muted center">若没有声音：先点“试听”或任意位置；iPhone 请关闭机身静音键。</p>
+    <p class="muted center">若没有声音：先点“试听”或空白处；iPhone 请关闭机身静音键。</p>
   </div>
 </main>
 
@@ -88,12 +86,13 @@ max-height:72vh;overflow:auto}
   </div>
 </div>
 
-<!-- 分享弹层 -->
+<!-- 分享弹层（带统计 + 二维码主备双源） -->
 <style>
 .share-mask{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9999}
-.share-card{background:#0f1117;border:1px solid #2a3042;border-radius:14px;padding:16px;max-width:460px;color:#eaeef5}
+.share-card{background:#0f1117;border:1px solid #2a3042;border-radius:14px;padding:16px;max-width:480px;color:#eaeef5}
 .share-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .share-box{border:1px dashed #394058;border-radius:12px;min-height:160px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.share-box img{max-width:100%;max-height:220px;display:block}
 .share-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
 </style>
 <div id="shareModal" class="share-mask" onclick="if(event.target===this)this.style.display='none'">
@@ -109,8 +108,10 @@ max-height:72vh;overflow:auto}
       </div>
       <div class="share-box">
         <img id="shareQR" alt="二维码">
+        <div id="qrFallback" class="small" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center">二维码加载失败，请先复制链接</div>
       </div>
     </div>
+    <div id="statsLine" class="small" style="margin-top:10px;text-align:center">累计观看：-- 次 · 完播：-- 次 · 打赏点击：-- 次</div>
     <div class="share-actions">
       <button class="secondary" onclick="document.getElementById('shareModal').style.display='none'">关闭</button>
     </div>
@@ -131,6 +132,12 @@ function parseData(){
 var data=parseData();
 if(!data){ document.body.innerHTML='<div class="container"><div class="card">数据丢失，请返回入口</div></div>'; throw new Error('no data'); }
 var key=String(data.ts), cid=(data.cid||String(data.ts)), id=key.slice(-6);
+var isReplay=(location.hash||'').indexOf('view=1')>=0;
+
+/* 匿名计数器 */
+var NS='muse-ritual';
+function bump(name){ try{ fetch('https://api.countapi.xyz/hit/'+NS+'/'+encodeURIComponent(name)); }catch(e){} }
+async function readCount(name){ try{ const r=await fetch('https://api.countapi.xyz/get/'+NS+'/'+encodeURIComponent(name)); const j=await r.json(); return j && typeof j.value==='number'?j.value:0; }catch(e){ return 0; } }
 
 /* 声音指示点 */
 (function(){ var dot=document.createElement('div'); dot.id='soundDot';
@@ -142,7 +149,7 @@ function setDot(ok){ var d=$('soundDot'); if(d) d.style.background=ok?'#2ecc71':
 /* 舞台/状态 */
 var badgeEl=$('badge'), cdEl=$('countdown'), mqEl=$('marquee');
 var paused=false, bgm=null, voice=null, emcee=null;
-var emceeOpen=null, emceeClose=null; // 预热后的开场/收尾
+var emceeOpen=null, emceeClose=null;
 var narrationDone=false;
 var endAt=0, tickTimer=null;
 var duration = Number(data.duration)||180;
@@ -159,7 +166,8 @@ function __unlock(){
   }catch(e){}
   try{ var a=new Audio(); a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBIAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA='; a.muted=true; a.playsInline=true; a.play().then(function(){ a.pause(); setDot(true); }).catch(function(){}); }catch(e){}
 }
-function __beep(){
+function __beep(ev){
+  if(ev) ev.stopPropagation();
   __unlock();
   try{
     var AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
@@ -170,7 +178,10 @@ function __beep(){
   }catch(e){}
 }
 
-/* ===== 真实时间倒计时（驱动“延迟收尾”） ===== */
+/* ===== 防穿透：点蒙层空白处才开始 ===== */
+function __maskTap(e){ if(e && e.target && e.target.id==='hint'){ __start(e); } }
+
+/* ===== 倒计时（驱动“延迟收尾”） ===== */
 function fmt(sec){ var m=('0'+Math.floor(sec/60)).slice(-2); var s=('0'+(sec%60)).slice(-2); return m+':'+s; }
 function startClock(seconds){
   endAt = Date.now() + seconds*1000;
@@ -259,7 +270,6 @@ function pickPrewarm(srcs){ // 预热：muted 播一帧→暂停
     })(0);
   });
 }
-
 function playEmcee(kind){ // 立即播放（兜底）
   return new Promise(function(resolve){
     var gender = (data.emcee_gender || 'female');
@@ -284,6 +294,7 @@ function startBGM(){
     var srcs=[ss,'assets/bgm_default.m4a','assets/bgm_default.mp3','assets/bgm_default.ogg','assets/bgm_default.wav'];
     pickPlayable(srcs, 0.0001, true).then(function(a){
       bgm=a;
+      // 渐入
       setTimeout(function(){
         try{
           var target=(typeof data.bgmVol==='number'?data.bgmVol:0.28);
@@ -291,6 +302,9 @@ function startBGM(){
           var idv=setInterval(function(){ n++; try{ if(bgm){ bgm.volume=Math.max(0, Math.min(1, (bgm.volume||0)+delta)); } }catch(e){} if(n>=steps) clearInterval(idv); }, 120);
         }catch(e){}
       }, 200);
+      // 二次重试，防权限弹窗干扰
+      setTimeout(function(){ try{ bgm && bgm.paused && bgm.play(); }catch(_){ } }, 600);
+      setTimeout(function(){ try{ bgm && bgm.paused && bgm.play(); }catch(_){ } }, 1200);
       resolve();
     });
   });
@@ -298,7 +312,8 @@ function startBGM(){
 
 /* ===== 本地录音（MediaRecorder） ===== */
 var rec=null, recChunks=[], recStream=null, recTimer=null, recStart=0;
-function __toggleRec(){
+function __toggleRec(ev){
+  if(ev) ev.stopPropagation();
   if(rec && rec.state==='recording'){ __stopRec(); return; }
   __startRec();
 }
@@ -359,8 +374,9 @@ function playMain(){
   });
 }
 
-/* ===== 启动流程：手势内预热“收尾” ===== */
-function __start(){
+/* ===== 启动流程：手势内预热开场/收尾 ===== */
+function __start(ev){
+  if(ev) ev.stopPropagation();
   if(window.__starting) return; window.__starting=true;
   var hint=$('hint'); if(hint) hint.style.display='none';
 
@@ -368,12 +384,15 @@ function __start(){
   mqEl.textContent=(data.letter||'（在这里，对过去的自己温柔地道一声再见…）');
   __unlock(); __theme();
 
-  // 手势内：预热开场/收尾 + 启动 BGM
   Promise.all([ startBGM(), preloadEmcee('open'), preloadEmcee('close') ]).then(function(arr){
     emceeOpen = arr[1]; emceeClose = arr[2];
     if(emceeOpen){ emcee = emceeOpen; try{ emcee.play(); }catch(e){} }
     else{ playEmcee('open'); }
     startClock(duration);
+
+    // 只有回放页面才计浏览量
+    if(isReplay){ bump('view_'+cid); }
+
     return playMain();
   }).then(function(){ /* 收尾由倒计时最后几秒触发 */ });
 }
@@ -398,8 +417,9 @@ function __pause(){
   }
 }
 
-/* 真正结束：淡出 BGM → 跳证书 */
+/* 真正结束：记完播 → 淡出 BGM → 跳证书 */
 function __finish(){
+  try{ bump('finish_'+cid); }catch(_){}
   try{
     if(bgm){
       var n=10,step=(bgm.volume||0)/10;
@@ -409,13 +429,26 @@ function __finish(){
   location.href='certificate.html#'+location.hash.slice(1);
 }
 
-/* 分享/打赏 */
+/* 分享/打赏 + 二维码兜底 + 统计展示 */
 function __landingURL(){ try{ var u=new URL('index.html', location.href).href; return u.replace(/index\.html(\?|#|$)/,'$1'); }catch(e){ return 'index.html'; } }
 function __openShare(link,title){
-  var m=$('shareModal'),input=$('shareInput'),qr=$('shareQR'),t=$('shareTitle');
+  var m=$('shareModal'),input=$('shareInput'),qr=$('shareQR'),t=$('shareTitle'),fb=$('qrFallback');
   if(t) t.textContent=title||'分享链接'; if(!m||!input||!qr) return;
-  input.value=link; qr.src='https://api.qrserver.com/v1/create-qr-code/?size=240x240&data='+encodeURIComponent(link);
+  input.value=link;
+  if(fb) fb.style.display='none';
+  var primary='https://api.qrserver.com/v1/create-qr-code/?size=240x240&data='+encodeURIComponent(link);
+  var backup ='https://quickchart.io/qr?size=240&text='+encodeURIComponent(link);
+  qr.onerror=function(){ qr.onerror=null; qr.src=backup; qr.onload=null; setTimeout(function(){ if(qr.naturalWidth===0&&fb){ fb.style.display='flex'; } },1000); };
+  qr.src=primary;
   m.style.display='flex';
+  __updateShareStats();  // 打开时读取统计
+}
+async function __updateShareStats(){
+  var el=$('statsLine'); if(!el) return;
+  var v=await readCount('view_'+cid);
+  var f=await readCount('finish_'+cid);
+  var t=await readCount('tip_open_'+cid);
+  el.textContent='累计观看：'+v+' 次 · 完播：'+f+' 次 · 打赏点击：'+t+' 次';
 }
 function __copyShare(){ var input=$('shareInput'); if(!input) return; input.select(); input.setSelectionRange(0,99999);
   try{ navigator.clipboard.writeText(input.value).then(function(){ alert('已复制链接'); }); }catch(e){ try{ document.execCommand('copy'); alert('已复制链接'); }catch(e2){ alert('复制失败，请长按输入框复制'); } } }
@@ -434,7 +467,7 @@ function __shareReplay(){
     else{ __openShare(link,'分享完整流程'); }
   }catch(e){ __openShare(link,'分享完整流程'); }
 }
-function __tip(){ var m=$('tipModal'); if(m) m.style.display='flex'; }
+function __tip(){ try{ bump('tip_open_'+cid); }catch(_){ } var m=$('tipModal'); if(m) m.style.display='flex'; }
 
 /* 初始文案 */
 badgeEl.textContent='为 '+(data.yourName||'你')+' 与 '+(data.aiName||'TA')+' 的仪式 · NO.'+id;
