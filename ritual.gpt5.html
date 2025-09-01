@@ -1,16 +1,17 @@
 <!doctype html><html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>仪式进行中 · 情绪博物馆（真实时间倒计时版）</title>
+<title>仪式进行中 · 情绪博物馆（稳定版：无TTS+本地录音）</title>
 <link rel="stylesheet" href="styles.css">
 <style>
-.hint-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9999}
-.hint-card{background:#0f1117;border:1px solid #2a3042;border-radius:16px;padding:16px;max-width:420px;color:#eaeef5;text-align:center}
-.hint-title{font-size:18px;margin:2px 0 6px}
-.hint-text{font-size:14px;color:#aab3cf;margin-bottom:10px}
+.hint-overlay{position:fixed;inset:0;background:rgba(0,0,0,.50);display:flex;align-items:center;justify-content:center;z-index:9999}
+.hint-card{background:#0f1117;border:1px solid #2a3042;border-radius:16px;padding:16px;max-width:480px;color:#eaeef5;text-align:center}
+.hint-title{font-size:18px;margin:2px 0 8px}
+.hint-text{font-size:14px;color:#aab3cf;margin-bottom:12px}
 .hint-row{display:flex;gap:10px;justify-content:center;margin-bottom:10px;flex-wrap:wrap}
 .actions{position:fixed;left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));display:flex;flex-wrap:wrap;gap:10px;justify-content:center;z-index:5}
 .actions>button{flex:1 1 160px;min-height:40px;white-space:nowrap}
+.small{font-size:12px;color:#aab3cf}
 </style>
 </head>
 <body>
@@ -18,16 +19,21 @@
   <div class="card">
     <div id="scene" class="scene">
 
-      <!-- 开场遮罩：整块可触发 + 按钮内联 -->
+      <!-- 开场遮罩：整块可触发 + 内联按钮 -->
       <div id="hint" class="hint-overlay" ontouchstart="__start()" onclick="__start()">
         <div class="hint-card">
           <div class="hint-title">准备开始</div>
-          <div class="hint-text">点任意处或下方按钮开启声音</div>
+          <div class="hint-text">点任意处或下方按钮开启声音（可先录 5–30 秒“原声”）</div>
+
           <div class="hint-row">
-            <button id="tryFemale" onclick="__try('female')">试听女生</button>
-            <button id="tryMale"   onclick="__try('male')">试听男生</button>
+            <button id="tryFemale" onclick="__beep()">试听女生</button>
+            <button id="tryMale"   onclick="__beep()">试听男生</button>
+            <button id="recBtn"    onclick="__toggleRec()">🎙️ 录音我的原声（上限30秒）</button>
           </div>
+          <div id="recInfo" class="small" style="display:none"></div>
+
           <button id="startPlay" class="primary" onclick="__start()">开始</button>
+          <div class="small" style="margin-top:6px">说明：录音仅保存在本机临时内存，不上传</div>
         </div>
       </div>
 
@@ -44,13 +50,13 @@
         <button id="tipBtn"       class="secondary" onclick="__tip()">打赏支持</button>
       </div>
     </div>
-    <p class="muted center">若没有声音：先点“试听”或任何位置；iPhone 请关闭机身静音键。</p>
+    <p class="muted center">若没有声音：先点“试听”或任意位置；iPhone 请关闭机身静音键。</p>
   </div>
 </main>
 
 <footer class="footer">© 情绪博物馆</footer>
 
-<!-- 打赏弹层（复用入口样式） -->
+<!-- 打赏弹层 -->
 <style>
 .tip-mask{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:99999}
 .tip-card{background:#0f1117;border:1px solid #2a3042;border-radius:14px;padding:16px 16px 12px;max-width:440px;color:#eaeef5}
@@ -110,7 +116,7 @@
 </div>
 
 <script>
-/* ===== 小工具 & 数据 ===== */
+/* ===== 工具 & 数据 ===== */
 function $(id){ return document.getElementById(id); }
 function parseData(){
   try{
@@ -131,13 +137,13 @@ var key=String(data.ts), cid=(data.cid||String(data.ts)), id=key.slice(-6);
 })();
 function setDot(ok){ var d=$('soundDot'); if(d) d.style.background=ok?'#2ecc71':'#f55'; }
 
-/* 舞台/计时/状态 */
+/* 舞台/状态 */
 var badgeEl=$('badge'), cdEl=$('countdown'), mqEl=$('marquee');
 var paused=false, bgm=null, voice=null;
-var narrationDone=false;
-var endAt=0, tickTimer=null; // 用真实时间计算剩余秒
+var narrationDone=false;  // 旁白完成标记
+var endAt=0, tickTimer=null;
 
-/* 解锁（双保险） */
+/* ===== 音频解锁 + 试听哔声 ===== */
 function __unlock(){
   try{
     var AC=window.AudioContext||window.webkitAudioContext;
@@ -145,23 +151,16 @@ function __unlock(){
       var o=ctx.createOscillator(), g=ctx.createGain(); g.gain.value=0; o.connect(g).connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.02);
     }
   }catch(e){}
-  try{
-    var a=new Audio();
-    a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBIAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=';
-    a.muted=true; a.playsInline=true; a.play().then(function(){ a.pause(); setDot(true); }).catch(function(){});
-  }catch(e){}
+  try{ var a=new Audio(); a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBIAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA='; a.muted=true; a.playsInline=true; a.play().then(function(){ a.pause(); setDot(true); }).catch(function(){}); }catch(e){}
 }
-function getSS(prefix){ try{ var d=sessionStorage.getItem(prefix+'_'+key); return (d&&d.indexOf('data:')===0)?d:null; }catch(_){ return null; } }
-
-/* 试听（TTS） */
-function __try(gender){
+function __beep(){
   __unlock();
   try{
-    var s=window.speechSynthesis; if(!s) return;
-    var u=new SpeechSynthesisUtterance(gender==='male'?'这是男生的试听。':'这是女生的试听。');
-    u.rate=(gender==='male')?0.95:0.98; u.pitch=(gender==='male')?0.95:1.05;
-    u.onstart=function(){ setDot(true); };
-    s.speak(u);
+    var AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+    var ctx=new AC(); var o=ctx.createOscillator(); var g=ctx.createGain();
+    o.type='sine'; o.frequency.value=880; g.gain.value=0.2;
+    o.connect(g).connect(ctx.destination); o.start(); setDot(true);
+    setTimeout(function(){ try{o.stop(); ctx.close&&ctx.close();}catch(_){}} ,180);
   }catch(e){}
 }
 
@@ -173,23 +172,20 @@ function startClock(seconds){
     if(paused){ tickTimer=setTimeout(loop,300); return; }
     var left = Math.max(0, Math.ceil((endAt - Date.now())/1000));
     cdEl.textContent = fmt(left);
-    if(left===0){
-      if(narrationDone){ __finish(); return; }
-      tickTimer=setTimeout(loop, 400); // 等旁白读完
-    }else{
-      tickTimer=setTimeout(loop, 250); // 高频更新更稳
-    }
+    if(left===0){ if(narrationDone){ __finish(); } else { tickTimer=setTimeout(loop, 400); } }
+    else { tickTimer=setTimeout(loop, 250); }
   }
   if(tickTimer) clearTimeout(tickTimer);
   loop();
 }
 
-/* 舞台主题（提速星空） */
+/* ===== 背景主题（加速星空） ===== */
 function __theme(){
   var scene=$('scene'); if(!scene) return;
   try{
-    var bg=getSS('bg'), src=(bg&&bg.indexOf('data:image/')===0)?bg:'assets/bg_custom.jpg';
-    scene.style.backgroundImage='linear-gradient(to bottom, rgba(8,10,18,.52), rgba(8,10,18,.58)), url("'+src+'")';
+    var bg=(function(){ try{ return sessionStorage.getItem('bg_'+key) || ''; }catch(_){ return ''; } })();
+    var src=(bg && bg.indexOf('data:image/')===0)?bg:'assets/bg_custom.jpg';
+    scene.style.backgroundImage='linear-gradient(to bottom, rgba(20,22,30,.35), rgba(20,22,30,.45)), url("'+src+'")';
     scene.style.backgroundSize='cover'; scene.style.backgroundPosition='center'; scene.style.backgroundRepeat='no-repeat';
   }catch(e){}
   var th=(data.theme==='candles'?'candle':data.theme);
@@ -198,7 +194,7 @@ function __theme(){
     for(var i=0;i<130;i++){
       var s=document.createElement('div'); s.className='star';
       s.style.left=(Math.random()*120-10)+'vw'; s.style.top=(Math.random()*100)+'%';
-      s.style.setProperty('--spd', (10+Math.random()*10)+'s'); // 更快的漂移
+      s.style.setProperty('--spd', (10+Math.random()*10)+'s');
       s.style.opacity=0.5+Math.random()*0.45;
       scene.appendChild(s);
     }
@@ -209,57 +205,42 @@ function __theme(){
   }
 }
 
-/* TTS：带 1.2s 超时保护 */
-function speakP(text, rate, pitch){
+/* ===== 资源选择器（司仪音轨/原声/BGM） ===== */
+function pickPlayable(srcs, vol, loop){
   return new Promise(function(resolve){
-    try{
-      var s=window.speechSynthesis; if(!s || !text){ resolve(); return; }
-      var done=false, t=setTimeout(function(){ if(!done){ done=true; resolve(); } }, 1200);
-      var u=new SpeechSynthesisUtterance(String(text));
-      if(typeof rate==='number')  u.rate=rate;
-      if(typeof pitch==='number') u.pitch=pitch;
-      u.onstart=function(){ setDot(true); };
-      u.onend=function(){ if(!done){ done=true; clearTimeout(t); resolve(); } };
-      u.onerror=function(){ if(!done){ done=true; clearTimeout(t); resolve(); } };
-      s.speak(u);
-    }catch(e){ resolve(); }
-  });
-}
-function speakPartsP(fullText, isMale){
-  return new Promise(function(resolve){
-    try{
-      var s=window.speechSynthesis; if(!s || !fullText){ resolve(); return; }
-      var parts=String(fullText).match(/[^。！？!?]+[。！？!?]?/g) || [String(fullText)];
-      var idx=0;
-      function next(){
-        if(idx>=parts.length){ resolve(); return; }
-        var u=new SpeechSynthesisUtterance(parts[idx++]);
-        u.rate=isMale?0.95:0.98; u.pitch=isMale?0.95:1.05;
-        u.onstart=function(){ setDot(true); };
-        u.onend=next; u.onerror=next;
-        try{ s.speak(u); }catch(e){ next(); }
-      }
-      // 总超时上限，避免卡住
-      var guard=setTimeout(function(){ resolve(); }, 6000);
-      var oldResolve=resolve; resolve=function(){ clearTimeout(guard); oldResolve(); };
-      next();
-    }catch(e){ resolve(); }
+    (function tryNext(i){
+      if(i>=srcs.length){ resolve(null); return; }
+      var s=srcs[i]; if(!s){ tryNext(i+1); return; }
+      var a=new Audio(); a.src=s; a.playsInline=true; a.preload='auto';
+      if(loop) a.loop=true;
+      if(typeof vol==='number') a.volume=Math.max(0,Math.min(1,vol));
+      var tried=false;
+      a.addEventListener('playing', function(){ setDot(true); });
+      var p=a.play();
+      if(p && p.catch){ p.catch(function(){ if(!tried){ tried=true; tryNext(i+1);} }); }
+      setTimeout(function(){ if(a.paused){ try{a.pause();}catch(_){ } if(!tried){ tried=true; tryNext(i+1);} } else { resolve(a); } }, 180);
+    })(0);
   });
 }
 
-/* BGM（playing 即变绿，淡入） */
+function playEmcee(kind){ // kind: 'open'|'close'; 自动按性别挑文件
+  return new Promise(function(resolve){
+    var gender = (kind==='open' ? data.emcee_gender : data.emcee_gender) || 'female';
+    var base = 'assets/emcee_'+(gender==='male'?'male':'female')+'_'+kind;
+    var cand=[base+'.m4a', base+'.mp3', base+'.ogg', base+'.wav'];
+    pickPlayable(cand, 1, false).then(function(a){
+      if(!a){ resolve(); return; }
+      a.onended=function(){ resolve(); };
+    });
+  });
+}
+
 function startBGM(){
   return new Promise(function(resolve){
-    try{
-      var bss=getSS('bgm');
-      var srcs=[bss,'assets/bgm_default.m4a','assets/bgm_default.mp3','assets/bgm_default.ogg','assets/bgm_default.wav'];
-      for(var i=0;i<srcs.length;i++){
-        if(!srcs[i]) continue;
-        bgm=new Audio(); bgm.src=srcs[i]; bgm.loop=true; bgm.volume=0.0001; bgm.playsInline=true;
-        bgm.addEventListener('playing', function(){ setDot(true); }, {once:true});
-        var p=bgm.play(); if(p&&p.catch){ p.catch(function(){}); }
-        break;
-      }
+    var ss=null; try{ ss=sessionStorage.getItem('bgm_'+key)||''; }catch(_){}
+    var srcs=[ss,'assets/bgm_default.m4a','assets/bgm_default.mp3','assets/bgm_default.ogg','assets/bgm_default.wav'];
+    pickPlayable(srcs, 0.0001, true).then(function(a){
+      bgm=a;
       setTimeout(function(){
         try{
           var target=(typeof data.bgmVol==='number'?data.bgmVol:0.28);
@@ -268,34 +249,75 @@ function startBGM(){
         }catch(e){}
       }, 200);
       resolve();
-    }catch(e){ resolve(); }
+    });
   });
 }
 
-/* 主段：原声优先，否则读 letter */
-function playMainSegment(){
+/* ===== 本地录音（MediaRecorder） ===== */
+var rec=null, recChunks=[], recStream=null, recTimer=null, recStart=0;
+function __toggleRec(){
+  if(rec && rec.state==='recording'){ __stopRec(); return; }
+  __startRec();
+}
+function __startRec(){
+  __unlock();
+  var btn=$('recBtn'), info=$('recInfo'); if(info){ info.style.display='block'; info.textContent='请求麦克风权限…'; }
+  var mime = '';
+  try{
+    if(window.MediaRecorder && MediaRecorder.isTypeSupported){
+      if(MediaRecorder.isTypeSupported('audio/mp4')) mime='audio/mp4';
+      else if(MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) mime='audio/webm;codecs=opus';
+      else if(MediaRecorder.isTypeSupported('audio/webm')) mime='audio/webm';
+    }
+  }catch(_){}
+  navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+    recStream=stream; recChunks=[];
+    try{ rec=new MediaRecorder(stream, mime?{mimeType:mime}:{}) }catch(e){ rec=new MediaRecorder(stream); }
+    rec.ondataavailable=function(e){ if(e.data && e.data.size>0) recChunks.push(e.data); };
+    rec.onstop=function(){
+      try{ recStream.getTracks().forEach(function(t){ t.stop(); }); }catch(_){}
+      var blob=new Blob(recChunks, {type: mime||'audio/webm'});
+      var fr=new FileReader(); fr.onload=function(){
+        try{ sessionStorage.setItem('voice_'+key, fr.result); }catch(_){}
+        if(info){ info.textContent='已录制 '+Math.round((Date.now()-recStart)/1000)+' 秒（开始按钮可直接播放原声）'; }
+        btn.textContent='🎙️ 重新录音';
+      }; fr.readAsDataURL(blob);
+    };
+    rec.start(200); recStart=Date.now();
+    btn.textContent='⏹️ 停止录音'; if(info){ info.textContent='正在录音… 最长 30 秒'; }
+    recTimer=setTimeout(__stopRec, 30000);
+  }).catch(function(){
+    if(info){ info.textContent='无法获取麦克风权限（请在浏览器设置里允许麦克风）'; }
+  });
+}
+function __stopRec(){
+  var btn=$('recBtn'); var info=$('recInfo');
+  try{ if(rec && rec.state==='recording') rec.stop(); }catch(_){}
+  try{ if(recTimer){ clearTimeout(recTimer); recTimer=null; } }catch(_){}
+  if(btn) btn.textContent='🎙️ 重新录音';
+  if(info){ info.style.display='block'; info.textContent='录音结束'; }
+}
+
+/* ===== 主段：原声优先（上传或刚录的） ===== */
+function playMain(){
   return new Promise(function(resolve){
-    try{
-      var vss=getSS('voice');
-      if(vss){
-        var isVideo=/^data:video\//i.test(vss);
-        voice = isVideo? document.createElement('video') : new Audio();
-        voice.src=vss; voice.playsInline=true;
-        if(isVideo){ voice.style.cssText='position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;'; document.body.appendChild(voice); }
-        var pv=voice.play(); if(pv&&pv.catch){ pv.catch(function(){}); }
-        voice.onplay=function(){ setDot(true); };
-        voice.onended=function(){ resolve(); };
-      }else{
-        var txt=String(data.letter||'').trim();
-        if(!txt){ resolve(); return; }
-        var isMale=(data.reader_gender==='male');
-        speakPartsP(txt, isMale).then(resolve);
-      }
-    }catch(e){ resolve(); }
+    var vss=null; try{ vss=sessionStorage.getItem('voice_'+key)||''; }catch(_){}
+    if(vss){
+      var isVideo=/^data:video\//i.test(vss);
+      voice = isVideo? document.createElement('video') : new Audio();
+      voice.src=vss; voice.playsInline=true;
+      if(isVideo){ voice.style.cssText='position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;'; document.body.appendChild(voice); }
+      var pv=voice.play(); if(pv&&pv.catch){ pv.catch(function(){}); }
+      voice.onplay=function(){ setDot(true); };
+      voice.onended=function(){ resolve(); };
+    }else{
+      // 无原声则只滚动字幕，不阻塞
+      resolve();
+    }
   });
 }
 
-/* ===== 启动流程（并行开场 + 实时倒计时 + 不提前结束） ===== */
+/* ===== 启动流程（无 TTS 版本） ===== */
 function __start(){
   if(window.__starting) return; window.__starting=true;
   var hint=$('hint'); if(hint) hint.style.display='none';
@@ -304,34 +326,29 @@ function __start(){
   mqEl.textContent=(data.letter||'（在这里，对过去的自己温柔地道一声再见…）');
   __unlock(); __theme(); startClock(Number(data.duration)||180);
 
-  var me=(data.yourName||'你'), you=(data.aiName||'TA');
-  var openTxt=(data.emcee_open||'把手给我。{meName} 和 {aiName} 把彼此的名字点亮，今晚只说我们听得懂的话。').replace('{meName}',me).replace('{aiName}',you);
-  var closeTxt=(data.emcee_close||'仪式到此，爱不止此。把这张证书收好，我们继续并肩往前走。').replace('{meName}',me).replace('{aiName}',you);
-
-  Promise.all([ speakP(openTxt, (data.emcee_gender==='male')?0.95:0.98, (data.emcee_gender==='male')?0.95:1.05), startBGM() ])
-    .then(playMainSegment)
-    .then(function(){ return speakP(closeTxt, 0.94, (data.emcee_gender==='male')?0.95:1.05); })
+  // 开场司仪（若 assets 有文件就播），与 BGM 并行
+  Promise.all([ playEmcee('open'), startBGM() ])
+    .then(playMain)
+    .then(function(){ return playEmcee('close'); })
     .then(function(){ narrationDone=true; });
 }
 
 /* 提前结束（按钮） */
 function __finishNow(){ narrationDone=true; __finish(); }
 
-/* 暂停/继续（基于真实时间） */
+/* 暂停/继续（真实时间） */
 function __pause(){
   if(!paused){
     paused=true; $('pause').textContent='继续';
     try{ bgm && !bgm.paused && bgm.pause(); }catch(e){}
     try{ voice && !voice.paused && voice.pause(); }catch(e){}
-    try{ var s=window.speechSynthesis; s && s.pause && s.pause(); }catch(e){}
   }else{
     paused=false; $('pause').textContent='暂停';
     // 重新校准结束时间
-    var nowLeft = (function(){ var mm=$('countdown').textContent.split(':'); return (parseInt(mm[0]||'0',10)*60 + parseInt(mm[1]||'0',10))||0; })();
-    endAt = Date.now() + nowLeft*1000;
+    var mm=$('countdown').textContent.split(':'), left=(parseInt(mm[0]||'0',10)*60 + parseInt(mm[1]||'0',10))||0;
+    endAt = Date.now() + left*1000;
     try{ bgm && bgm.paused && bgm.play(); }catch(e){}
     try{ voice && voice.paused && voice.play(); }catch(e){}
-    try{ var s2=window.speechSynthesis; s2 && s2.resume && s2.resume(); }catch(e){}
   }
 }
 
@@ -378,5 +395,6 @@ badgeEl.textContent='为 '+(data.yourName||'你')+' 与 '+(data.aiName||'TA')+' 
 mqEl.textContent=data.letter||'（在这里，对过去的自己温柔地道一声再见…）';
 </script>
 </body></html>
+
 
 
