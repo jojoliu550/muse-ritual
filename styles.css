@@ -1,35 +1,43 @@
-/* 情绪博物馆 · 样式（浅色星空灰蓝 · v2） */
+/* 情绪博物馆 · 浅色星空·精修样式 v2.2  */
 :root{
-  :root{
-  --bg-0:#121a2c;         /* 背景更浅一点 */
-  --bg-1:#16223b;
-  --card:#1e2948cc;       /* 卡片更透明（最后的 cc=80% 不透明度，可改 b3=70%） */
-  --card-border:#2a3557;
-  --text:#e9effa;
-  --muted:#aab3cf;
-  --line:#2f3a61;
-  --accent1:#cbd8ff;           /* 渐变浅蓝 */
-  --accent2:#ffd6e4;           /* 渐变蜜桃粉 */
-  --btn-dk:#2b355b;
-  --btn-dk-2:#343f69;
+  /* 色系与层级 */
+  --bg-0:#121a2c;        /* 背景上层（更浅） */
+  --bg-1:#16223b;        /* 背景下层 */
+  --card:#1e2948cc;      /* 卡片（80% 透明度） */
+  --card-border:#2b3761;
+  --soft-border:#32406d;
+  --text:#eaf0fa;
+  --muted:#aeb7cf;
+  --muted-2:#8f98b4;
+  --line:#2f3b66;
+
+  /* 强调与按钮 */
+  --accent1:#cfe0ff;     /* 渐变浅蓝 */
+  --accent2:#ffd8e6;     /* 渐变蜜桃粉 */
+  --btn-dk:#2b3560;      /* 次要按钮起色 */
+  --btn-dk-2:#343f6b;    /* 次要按钮落色 */
+
+  /* 圆角与阴影 */
+  --radius-lg:16px;
+  --radius-md:12px;
+  --shadow-lg:0 12px 34px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05);
 }
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
 body{
   margin:0;
-  font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
   color:var(--text);
   background:
-    radial-gradient(1200px 700px at 50% -200px,#1c2646,#0e1426) fixed,
-    linear-gradient(#0e1426,#12182b) fixed;
+    radial-gradient(1200px 680px at 50% -220px,#1b2650,#0e1426) fixed,
+    linear-gradient(#0f162a,#121a2c) fixed;
 }
 
-a{color:inherit;text-decoration:none}
-
-.container{max-width:920px;margin:20px auto;padding:0 14px}
-.hero{padding:18px 0 6px}
-.hero h1{margin:0 0 8px;font-size:26px;font-weight:700}
+/* 容器与标题 */
+.container{max-width:960px;margin:18px auto;padding:0 14px}
+.hero{padding:10px 0 2px}
+.hero h1{margin:0 0 6px;font-size:22px;font-weight:700;letter-spacing:.5px}
 .muted{color:var(--muted)}
 .small{font-size:12px;color:var(--muted)}
 
@@ -37,42 +45,42 @@ a{color:inherit;text-decoration:none}
   position:relative;
   background:var(--card);
   border:1px solid var(--card-border);
-  border-radius:16px;
-  box-shadow:0 10px 30px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.04);
-  padding:16px;
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-lg);
+  padding:14px;
 }
-.footer{opacity:.7;text-align:center;padding:24px 0 30px}
 
+.footer{opacity:.75;text-align:center;padding:22px 0 28px}
+
+/* 舞台 */
 .scene{position:relative;min-height:68vh;border-radius:14px;overflow:hidden}
-
-/* 顶部徽章/计时/跑马 */
 .badge,.countdown{
-  position:absolute;left:22px;top:14px;
-  background:rgba(10,12,22,.55);
+  position:absolute;top:12px;
+  background:rgba(14,18,32,.55);
   border:1px solid rgba(255,255,255,.08);
-  border-radius:20px;padding:6px 12px;font-size:14px;
+  border-radius:20px;padding:6px 12px;font-size:13px;
   backdrop-filter:blur(6px)
 }
-.countdown{left:auto;right:22px}
-
+.badge{left:18px}
+.countdown{right:18px}
 .marquee{
-  position:absolute;left:24px;right:24px;bottom:98px;
-  color:#dfe7ff;font-size:15px;text-align:center;opacity:.95
+  position:absolute;left:20px;right:20px;bottom:96px;
+  color:#e3e9ff;font-size:14px;text-align:center;opacity:.95
 }
 
-/* 动作区 */
+/* 动作条 */
 .actions{
   position:fixed;left:12px;right:12px;
   bottom:max(12px,env(safe-area-inset-bottom));
   display:flex;flex-wrap:wrap;gap:10px;justify-content:center;z-index:5
 }
 button{
-  appearance:none;border:0;border-radius:12px;padding:11px 14px;
-  font-weight:600;cursor:pointer;min-height:40px
+  appearance:none;border:0;border-radius:var(--radius-md);
+  padding:10px 14px;min-height:40px;font-weight:600;cursor:pointer
 }
 button.primary{
   background-image:linear-gradient(90deg,var(--accent1),var(--accent2));
-  color:#1a1f33; box-shadow:0 6px 16px rgba(255,214,228,.25)
+  color:#1a2137; box-shadow:0 6px 16px rgba(255,214,228,.25)
 }
 button.secondary{
   background:linear-gradient(180deg,var(--btn-dk),var(--btn-dk-2));
@@ -80,13 +88,36 @@ button.secondary{
 }
 button:active{transform:translateY(1px)}
 
-/* 提示蒙层基础（页面里有更具体的内联样式） */
+/* 表单（更紧凑） */
+label{display:block;margin:8px 0 6px;color:var(--text);font-weight:600;font-size:13px}
+label>span{font-weight:400;color:var(--muted-2)}
+input,select,textarea{
+  width:100%;border:1px solid var(--soft-border);border-radius:10px;
+  padding:10px 12px;background:#101a33;color:var(--text);outline:none
+}
+input::placeholder,textarea::placeholder{color:#9aa3bf}
+textarea{min-height:100px}
+input:focus,select:focus,textarea:focus{
+  border-color:#6aa7ff; box-shadow:0 0 0 3px rgba(106,167,255,.20)
+}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.center{text-align:center}
+
+/* 进阶：在小屏改为单列，避免拥挤 */
+@media (max-width:720px){
+  .grid{grid-template-columns:1fr;gap:12px}
+  .kv{grid-template-columns:1fr 1fr;gap:8px}
+  .hero h1{font-size:21px}
+}
+
+/* 提示蒙层（基样式；细节在页面内联） */
 .hint-overlay{backdrop-filter:blur(3px)}
 
-/* —— 星空 —— */
+/* —— 星空 ——（更细腻 & 轻微流动） */
 .starfield{position:absolute;inset:0;background:
-  radial-gradient(1200px 600px at 50% -200px,rgba(136,160,255,.20),transparent),
-  linear-gradient(180deg,rgba(64,77,125,.18),rgba(29,36,66,.22))}
+  radial-gradient(1200px 560px at 50% -220px,rgba(136,160,255,.18),transparent),
+  linear-gradient(180deg,rgba(64,77,125,.16),rgba(29,36,66,.20))}
 .star{
   position:absolute;width:2px;height:2px;border-radius:50%;
   background:rgba(255,255,255,.9);opacity:var(--o,.8);
@@ -94,39 +125,30 @@ button:active{transform:translateY(1px)}
   box-shadow:0 0 6px rgba(200,220,255,.6)
 }
 @keyframes twinkle{
-  0%{transform:translateY(0) translateX(0);opacity:.7}
+  0%{transform:translateY(0) translateX(0);opacity:.75}
   50%{transform:translateY(-6px) translateX(8px);opacity:1}
-  100%{transform:translateY(0) translateX(0);opacity:.7}
+  100%{transform:translateY(0) translateX(0);opacity:.75}
 }
 
-/* 霓虹极光（保留占位） */
+/* —— 霓虹极光 —— */
 .neon{position:absolute;inset:0;background:
-  radial-gradient(600px 300px at 30% 20%,rgba(120,255,230,.18),transparent),
-  radial-gradient(700px 420px at 70% 10%,rgba(170,140,255,.18),transparent)}
-.neon-bar{position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,transparent,rgba(200,220,255,.6),transparent);opacity:.6}
+  radial-gradient(580px 300px at 28% 22%,rgba(120,255,230,.15),transparent),
+  radial-gradient(700px 420px at 72% 12%,rgba(170,140,255,.16),transparent)}
+.neon-bar{position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,transparent,rgba(200,220,255,.55),transparent);opacity:.6}
 
-/* 烛光（保留占位） */
+/* —— 烛光 —— */
 .dark-vignette{position:absolute;inset:0;background:
   radial-gradient(60% 70% at 50% 85%,rgba(255,190,140,.08),transparent),
-  radial-gradient(120% 120% at 50% 120%,rgba(0,0,0,.35),transparent)}
+  radial-gradient(120% 120% at 50% 120%,rgba(0,0,0,.30),transparent)}
 .flame{
-  position:absolute;width:6px;height:12px;background:radial-gradient(50% 70% at 50% 20%,#ffd2a8,#ff9b4e 60%,transparent 61%);
-  border-radius:50% 50% 50% 50%;filter:blur(.4px);opacity:.6;animation:fl 1.6s ease-in-out infinite
+  position:absolute;width:6px;height:12px;
+  background:radial-gradient(50% 70% at 50% 20%,#ffd2a8,#ff9b4e 60%,transparent 61%);
+  border-radius:50%;filter:blur(.4px);opacity:.6;animation:fl 1.6s ease-in-out infinite
 }
 @keyframes fl{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-2px) scale(1.05)}}
 
-/* 表单（入口用到） */
-label{display:block;margin:10px 0 8px}
-input,select,textarea{
-  width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;
-  background:#111a31;color:var(--text);outline:none
-}
-textarea{min-height:100px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.center{text-align:center}
-
-
+/* 证书里预格式文本换行更优雅 */
+pre{white-space:pre-wrap;word-break:break-word}
 
 
 
