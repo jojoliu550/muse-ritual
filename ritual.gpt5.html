@@ -1,7 +1,7 @@
 <!doctype html><html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>仪式进行中 · 情绪博物馆（稳定版v4.1：+浏览量统计）</title>
+<title>仪式进行中 · 情绪博物馆（稳定版 v4.2：开场串行+安卓稳声）</title>
 <link rel="stylesheet" href="styles.css">
 <style>
 .hint-overlay{position:fixed;inset:0;background:rgba(0,0,0,.50);display:flex;align-items:center;justify-content:center;z-index:9999}
@@ -20,11 +20,11 @@
   <div class="card">
     <div id="scene" class="scene">
 
-      <!-- 开场遮罩：点空白处或“开始”才启动；按钮不会穿透 -->
+      <!-- 开场遮罩：点空白处或“开始”才启动；按钮不穿透 -->
       <div id="hint" class="hint-overlay" onclick="__maskTap(event)">
         <div class="hint-card" onclick="event.stopPropagation()">
           <div class="hint-title">准备开始</div>
-          <div class="hint-text">点空白处或“开始”授权音频；可先录 5–30 秒“原声”</div>
+          <div class="hint-text">点空白处或“开始”授权音频；建议先点一次“试听”再开始（安卓/微信更稳）</div>
 
           <div class="hint-row">
             <button onclick="__beep(event)">试听女生</button>
@@ -86,7 +86,7 @@
   </div>
 </div>
 
-<!-- 分享弹层（带统计 + 二维码主备双源） -->
+<!-- 分享弹层（统计 + 二维码主备双源） -->
 <style>
 .share-mask{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9999}
 .share-card{background:#0f1117;border:1px solid #2a3042;border-radius:14px;padding:16px;max-width:480px;color:#eaeef5}
@@ -149,7 +149,7 @@ function setDot(ok){ var d=$('soundDot'); if(d) d.style.background=ok?'#2ecc71':
 /* 舞台/状态 */
 var badgeEl=$('badge'), cdEl=$('countdown'), mqEl=$('marquee');
 var paused=false, bgm=null, voice=null, emcee=null;
-var emceeOpen=null, emceeClose=null;
+var emceeOpen=null, emceeClose=null; // 预热后的开场/收尾
 var narrationDone=false;
 var endAt=0, tickTimer=null;
 var duration = Number(data.duration)||180;
@@ -161,10 +161,17 @@ function __unlock(){
   try{
     var AC=window.AudioContext||window.webkitAudioContext;
     if(AC){ var ctx=new AC(); if(ctx.resume) ctx.resume();
-      var o=ctx.createOscillator(), g=ctx.createGain(); g.gain.value=0; o.connect(g).connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.02);
+      // 真实播放 1 帧缓冲（安卓更稳）
+      var buf=ctx.createBuffer(1,1,22050), src=ctx.createBufferSource(); src.buffer=buf;
+      src.connect(ctx.destination); src.start(0);
     }
   }catch(e){}
-  try{ var a=new Audio(); a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBIAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA='; a.muted=true; a.playsInline=true; a.play().then(function(){ a.pause(); setDot(true); }).catch(function(){}); }catch(e){}
+  try{
+    var a=new Audio();
+    a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBIAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA='; // 20ms 静音
+    a.muted=true; a.playsInline=true;
+    a.play().then(function(){ a.pause(); setDot(true); }).catch(function(){});
+  }catch(e){}
 }
 function __beep(ev){
   if(ev) ev.stopPropagation();
@@ -172,7 +179,7 @@ function __beep(ev){
   try{
     var AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
     var ctx=new AC(); var o=ctx.createOscillator(); var g=ctx.createGain();
-    o.type='sine'; o.frequency.value=880; g.gain.value=0.22;
+    o.type='sine'; o.frequency.value=880; g.gain.value=0.25;
     o.connect(g).connect(ctx.destination); o.start(); setDot(true);
     setTimeout(function(){ try{o.stop(); ctx.close&&ctx.close();}catch(_){}} ,180);
   }catch(e){}
@@ -181,7 +188,7 @@ function __beep(ev){
 /* ===== 防穿透：点蒙层空白处才开始 ===== */
 function __maskTap(e){ if(e && e.target && e.target.id==='hint'){ __start(e); } }
 
-/* ===== 倒计时（驱动“延迟收尾”） ===== */
+/* ===== 真实时间倒计时（驱动“延迟收尾”） ===== */
 function fmt(sec){ var m=('0'+Math.floor(sec/60)).slice(-2); var s=('0'+(sec%60)).slice(-2); return m+':'+s; }
 function startClock(seconds){
   endAt = Date.now() + seconds*1000;
@@ -189,17 +196,15 @@ function startClock(seconds){
     if(paused){ tickTimer=setTimeout(loop,300); return; }
     var left = Math.max(0, Math.ceil((endAt - Date.now())/1000));
     cdEl.textContent = fmt(left);
-
     if(!closingStarted && left<=CLOSE_BEFORE){
       closingStarted=true;
       if(emceeClose){
-        emcee = emceeClose; try{ emcee.play(); }catch(e){}
+        emcee = emceeClose; try{ emcee.play().catch(()=>{}); }catch(e){}
         emcee.onended=function(){ narrationDone=true; };
       }else{
         playEmcee('close').then(function(){ narrationDone=true; });
       }
     }
-
     if(left===0){
       if(narrationDone){ __finish(); return; }
       tickTimer=setTimeout(loop, 400);
@@ -246,11 +251,11 @@ function pickPlayable(srcs, vol, loop){
       var a=new Audio(); a.src=s; a.playsInline=true; a.preload='auto';
       if(loop) a.loop=true;
       if(typeof vol==='number') a.volume=Math.max(0,Math.min(1,vol));
-      var tried=false;
-      a.addEventListener('playing', function(){ setDot(true); });
+      a.addEventListener('playing', function(){ setDot(true); }, {once:true});
       var p=a.play();
-      if(p && p.catch){ p.catch(function(){ if(!tried){ tried=true; tryNext(i+1);} }); }
-      setTimeout(function(){ if(a.paused){ try{a.pause();}catch(_){ } if(!tried){ tried=true; tryNext(i+1);} } else { resolve(a); } }, 180);
+      if(p && p.catch){ p.catch(function(){ tryNext(i+1); }); return; }
+      // 若 200ms 内未启动，换下一个
+      setTimeout(function(){ if(a.paused) tryNext(i+1); else resolve(a); }, 200);
     })(0);
   });
 }
@@ -270,14 +275,20 @@ function pickPrewarm(srcs){ // 预热：muted 播一帧→暂停
     })(0);
   });
 }
-function playEmcee(kind){ // 立即播放（兜底）
+function playEmcee(kind){ // 立即播放（并在失败时重试几次）
   return new Promise(function(resolve){
     var gender = (data.emcee_gender || 'female');
     var base = 'assets/emcee_'+(gender==='male'?'male':'female')+'_'+kind;
     var cand=[base+'.m4a', base+'.mp3', base+'.ogg', base+'.wav'];
     pickPlayable(cand, 1, false).then(function(a){
       if(!a){ resolve(); return; }
-      emcee = a; emcee.onended=function(){ resolve(); };
+      emcee = a;
+      var tries=0; function ensurePlaying(){
+        try{ emcee.play().catch(()=>{}); }catch(_){}
+        if(++tries<3) setTimeout(ensurePlaying, 600);
+      }
+      ensurePlaying();
+      emcee.onended=function(){ resolve(); };
     });
   });
 }
@@ -302,7 +313,7 @@ function startBGM(){
           var idv=setInterval(function(){ n++; try{ if(bgm){ bgm.volume=Math.max(0, Math.min(1, (bgm.volume||0)+delta)); } }catch(e){} if(n>=steps) clearInterval(idv); }, 120);
         }catch(e){}
       }, 200);
-      // 二次重试，防权限弹窗干扰
+      // 二/三次重试，防权限弹窗干扰（安卓更稳）
       setTimeout(function(){ try{ bgm && bgm.paused && bgm.play(); }catch(_){ } }, 600);
       setTimeout(function(){ try{ bgm && bgm.paused && bgm.play(); }catch(_){ } }, 1200);
       resolve();
@@ -345,7 +356,7 @@ function __startRec(){
     btn.textContent='⏹️ 停止录音'; if(info){ info.style.display='block'; info.textContent='正在录音… 最长 30 秒'; }
     recTimer=setTimeout(__stopRec, 30000);
   }).catch(function(){
-    if(info){ info.textContent='无法获取麦克风权限（请在浏览器设置里允许麦克风）'; }
+    var info=$('recInfo'); if(info){ info.textContent='无法获取麦克风权限（请在浏览器设置里允许麦克风）'; }
   });
 }
 function __stopRec(){
@@ -365,7 +376,8 @@ function playMain(){
       voice = isVideo? document.createElement('video') : new Audio();
       voice.src=vss; voice.playsInline=true;
       if(isVideo){ voice.style.cssText='position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;'; document.body.appendChild(voice); }
-      var pv=voice.play(); if(pv&&pv.catch){ pv.catch(function(){}); }
+      var tries=0; function ensure(){ try{ voice.play().catch(()=>{}); }catch(_){ } if(++tries<3) setTimeout(ensure,600); }
+      ensure();
       voice.onplay=function(){ setDot(true); };
       voice.onended=function(){ resolve(); };
     }else{
@@ -374,26 +386,48 @@ function playMain(){
   });
 }
 
-/* ===== 启动流程：手势内预热开场/收尾 ===== */
+/* ===== 启动流程：手势内预热开场/收尾；开场→(结束后)→主段（不重叠） ===== */
 function __start(ev){
   if(ev) ev.stopPropagation();
   if(window.__starting) return; window.__starting=true;
-  var hint=$('hint'); if(hint) hint.style.display='none';
 
+  // 任何开始手势立刻把指示点点绿（给用户“已授权”的信号）
+  setDot(true);
+
+  var hint=$('hint'); if(hint) hint.style.display='none';
   badgeEl.textContent='为 '+(data.yourName||'你')+' 与 '+(data.aiName||'TA')+' 的仪式 · NO.'+id;
   mqEl.textContent=(data.letter||'（在这里，对过去的自己温柔地道一声再见…）');
   __unlock(); __theme();
 
+  // 安卓/微信：再注册一次手势解锁（某些内核需要 touchstart 才放行）
+  document.addEventListener('touchstart', __unlock, {once:true, passive:true});
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden){ try{ bgm&&bgm.play(); }catch(_){ } try{ emcee&&emcee.play(); }catch(_){ } try{ voice&&voice.play(); }catch(_){ } } });
+
   Promise.all([ startBGM(), preloadEmcee('open'), preloadEmcee('close') ]).then(function(arr){
     emceeOpen = arr[1]; emceeClose = arr[2];
-    if(emceeOpen){ emcee = emceeOpen; try{ emcee.play(); }catch(e){} }
-    else{ playEmcee('open'); }
+
+    // ① 开启倒计时
     startClock(duration);
+
+    // ② 严格串行：先播“开场司仪”，播放结束后再进入“主段”
+    function playOpenThenMain(){
+      return new Promise(function(res){
+        function afterOpen(){ playMain().then(res); }
+        if(emceeOpen){
+          emcee = emceeOpen;
+          var tries=0; function ensure(){ try{ emcee.play().catch(()=>{}); }catch(_){ } if(++tries<3) setTimeout(ensure,600); }
+          ensure();
+          emcee.onended=afterOpen;
+        }else{
+          playEmcee('open').then(afterOpen);
+        }
+      });
+    }
 
     // 只有回放页面才计浏览量
     if(isReplay){ bump('view_'+cid); }
 
-    return playMain();
+    return playOpenThenMain();
   }).then(function(){ /* 收尾由倒计时最后几秒触发 */ });
 }
 
@@ -469,8 +503,17 @@ function __shareReplay(){
 }
 function __tip(){ try{ bump('tip_open_'+cid); }catch(_){ } var m=$('tipModal'); if(m) m.style.display='flex'; }
 
+/* 微信内核兼容：就绪后主动唤醒媒体 */
+document.addEventListener('WeixinJSBridgeReady', function() {
+  try{ bgm && bgm.play(); }catch(_){}
+  try{ emcee && emcee.play(); }catch(_){}
+  try{ voice && voice.play(); }catch(_){}
+  setDot(true);
+}, false);
+
 /* 初始文案 */
 badgeEl.textContent='为 '+(data.yourName||'你')+' 与 '+(data.aiName||'TA')+' 的仪式 · NO.'+id;
 mqEl.textContent=data.letter||'（在这里，对过去的自己温柔地道一声再见…）';
 </script>
 </body></html>
+
