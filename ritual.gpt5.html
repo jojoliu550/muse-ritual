@@ -1,14 +1,17 @@
 <!doctype html><html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>仪式进行中 · 情绪博物馆（稳定版v2：延迟收尾+统一暂停）</title>
+<title>仪式进行中 · 情绪博物馆（稳定版v3：预热收尾+录音可见+统一暂停）</title>
 <link rel="stylesheet" href="styles.css">
 <style>
 .hint-overlay{position:fixed;inset:0;background:rgba(0,0,0,.50);display:flex;align-items:center;justify-content:center;z-index:9999}
-.hint-card{background:#0f1117;border:1px solid #2a3042;border-radius:16px;padding:16px;max-width:480px;color:#eaeef5;text-align:center}
+.hint-card{background:#0f1117;border:1px solid #2a3042;border-radius:16px;padding:16px;max-width:480px;color:#eaeef5;text-align:center;
+/* 关键：可滚动，防止按钮被挤没 */
+max-height:72vh;overflow:auto}
 .hint-title{font-size:18px;margin:2px 0 8px}
 .hint-text{font-size:14px;color:#aab3cf;margin-bottom:12px}
 .hint-row{display:flex;gap:10px;justify-content:center;margin-bottom:10px;flex-wrap:wrap}
+.hint-row button{min-width:150px}
 .actions{position:fixed;left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));display:flex;flex-wrap:wrap;gap:10px;justify-content:center;z-index:5}
 .actions>button{flex:1 1 160px;min-height:40px;white-space:nowrap}
 .small{font-size:12px;color:#aab3cf}
@@ -26,9 +29,9 @@
           <div class="hint-text">点任意处或下方按钮开启声音（可先录 5–30 秒“原声”）</div>
 
           <div class="hint-row">
-            <button id="tryFemale" onclick="__beep()">试听女生</button>
-            <button id="tryMale"   onclick="__beep()">试听男生</button>
-            <button id="recBtn"    onclick="__toggleRec()">🎙️ 录音我的原声（上限30秒）</button>
+            <button onclick="__beep()">试听女生</button>
+            <button onclick="__beep()">试听男生</button>
+            <button id="recBtn" onclick="__toggleRec()">🎙️ 录音我的原声（上限30秒）</button>
           </div>
           <div id="recInfo" class="small" style="display:none"></div>
 
@@ -91,7 +94,6 @@
 .share-card{background:#0f1117;border:1px solid #2a3042;border-radius:14px;padding:16px;max-width:460px;color:#eaeef5}
 .share-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .share-box{border:1px dashed #394058;border-radius:12px;min-height:160px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
-.share-box img{max-width:100%;max-height:220px;display:block}
 .share-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
 </style>
 <div id="shareModal" class="share-mask" onclick="if(event.target===this)this.style.display='none'">
@@ -139,11 +141,11 @@ function setDot(ok){ var d=$('soundDot'); if(d) d.style.background=ok?'#2ecc71':
 
 /* 舞台/状态 */
 var badgeEl=$('badge'), cdEl=$('countdown'), mqEl=$('marquee');
-var paused=false, bgm=null, voice=null, emcee=null; // emcee=当前司仪音轨
-var narrationDone=false;  // 旁白完成标记
+var paused=false, bgm=null, voice=null, emcee=null;
+var emceeOpen=null, emceeClose=null; // 预热后的开场/收尾
+var narrationDone=false;
 var endAt=0, tickTimer=null;
 var duration = Number(data.duration)||180;
-// 收尾提前秒数（长时长=10s，中等=9s，短=8s）
 var CLOSE_BEFORE = duration>=300?10: duration>=180?9:8;
 var closingStarted=false;
 
@@ -168,7 +170,7 @@ function __beep(){
   }catch(e){}
 }
 
-/* ===== 真实时间倒计时（并驱动“延迟收尾”） ===== */
+/* ===== 真实时间倒计时（驱动“延迟收尾”） ===== */
 function fmt(sec){ var m=('0'+Math.floor(sec/60)).slice(-2); var s=('0'+(sec%60)).slice(-2); return m+':'+s; }
 function startClock(seconds){
   endAt = Date.now() + seconds*1000;
@@ -177,15 +179,19 @@ function startClock(seconds){
     var left = Math.max(0, Math.ceil((endAt - Date.now())/1000));
     cdEl.textContent = fmt(left);
 
-    // 进入最后 CLOSE_BEFORE 秒且尚未触发收尾 → 播放收尾
     if(!closingStarted && left<=CLOSE_BEFORE){
       closingStarted=true;
-      playEmcee('close').then(function(){ narrationDone=true; });
+      if(emceeClose){
+        emcee = emceeClose; try{ emcee.play(); }catch(e){}
+        emcee.onended=function(){ narrationDone=true; };
+      }else{
+        playEmcee('close').then(function(){ narrationDone=true; });
+      }
     }
 
     if(left===0){
       if(narrationDone){ __finish(); return; }
-      tickTimer=setTimeout(loop, 400); // 等收尾播完
+      tickTimer=setTimeout(loop, 400);
     }else{
       tickTimer=setTimeout(loop, 250);
     }
@@ -220,7 +226,7 @@ function __theme(){
   }
 }
 
-/* ===== 资源选择器（司仪音轨/原声/BGM） ===== */
+/* ===== 资源：可播放与预热 ===== */
 function pickPlayable(srcs, vol, loop){
   return new Promise(function(resolve){
     (function tryNext(i){
@@ -237,18 +243,39 @@ function pickPlayable(srcs, vol, loop){
     })(0);
   });
 }
+function pickPrewarm(srcs){ // 预热：muted 播一帧→暂停
+  return new Promise(function(resolve){
+    (function tryNext(i){
+      if(i>=srcs.length){ resolve(null); return; }
+      var s=srcs[i]; if(!s){ tryNext(i+1); return; }
+      var a=new Audio(); a.src=s; a.playsInline=true; a.preload='auto'; a.muted=true;
+      var p=a.play();
+      if(p && p.then){
+        p.then(function(){ try{ a.pause(); a.muted=false; }catch(_){ } resolve(a); })
+         .catch(function(){ tryNext(i+1); });
+      }else{
+        setTimeout(function(){ try{ a.pause(); a.muted=false; resolve(a); }catch(_){ tryNext(i+1); } }, 120);
+      }
+    })(0);
+  });
+}
 
-function playEmcee(kind){ // kind: 'open'|'close'
+function playEmcee(kind){ // 立即播放（兜底）
   return new Promise(function(resolve){
     var gender = (data.emcee_gender || 'female');
     var base = 'assets/emcee_'+(gender==='male'?'male':'female')+'_'+kind;
     var cand=[base+'.m4a', base+'.mp3', base+'.ogg', base+'.wav'];
     pickPlayable(cand, 1, false).then(function(a){
       if(!a){ resolve(); return; }
-      emcee = a;
-      emcee.onended=function(){ resolve(); };
+      emcee = a; emcee.onended=function(){ resolve(); };
     });
   });
+}
+function preloadEmcee(kind){
+  var gender=(data.emcee_gender||'female');
+  var base='assets/emcee_'+(gender==='male'?'male':'female')+'_'+kind;
+  var cand=[base+'.m4a', base+'.mp3', base+'.ogg', base+'.wav'];
+  return pickPrewarm(cand);
 }
 
 function startBGM(){
@@ -327,24 +354,28 @@ function playMain(){
       voice.onplay=function(){ setDot(true); };
       voice.onended=function(){ resolve(); };
     }else{
-      // 无原声则只滚动字幕，不阻塞
       resolve();
     }
   });
 }
 
-/* ===== 启动流程（无 TTS：开场 → 主段（可空） → 收尾在最后几秒触发） ===== */
+/* ===== 启动流程：手势内预热“收尾” ===== */
 function __start(){
   if(window.__starting) return; window.__starting=true;
   var hint=$('hint'); if(hint) hint.style.display='none';
 
   badgeEl.textContent='为 '+(data.yourName||'你')+' 与 '+(data.aiName||'TA')+' 的仪式 · NO.'+id;
   mqEl.textContent=(data.letter||'（在这里，对过去的自己温柔地道一声再见…）');
-  __unlock(); __theme(); startClock(duration);
+  __unlock(); __theme();
 
-  Promise.all([ playEmcee('open'), startBGM() ])
-    .then(playMain)
-    .then(function(){ /* 收尾由倒计时在最后几秒自动触发 */ });
+  // 手势内：预热开场/收尾 + 启动 BGM
+  Promise.all([ startBGM(), preloadEmcee('open'), preloadEmcee('close') ]).then(function(arr){
+    emceeOpen = arr[1]; emceeClose = arr[2];
+    if(emceeOpen){ emcee = emceeOpen; try{ emcee.play(); }catch(e){} }
+    else{ playEmcee('open'); }
+    startClock(duration);
+    return playMain();
+  }).then(function(){ /* 收尾由倒计时最后几秒触发 */ });
 }
 
 /* 提前结束（按钮） */
@@ -359,7 +390,6 @@ function __pause(){
     try{ emcee && !emcee.paused && emcee.pause(); }catch(e){}
   }else{
     paused=false; $('pause').textContent='暂停';
-    // 重新校准结束时间
     var mm=$('countdown').textContent.split(':'), left=(parseInt(mm[0]||'0',10)*60 + parseInt(mm[1]||'0',10))||0;
     endAt = Date.now() + left*1000;
     try{ bgm && bgm.paused && bgm.play(); }catch(e){}
@@ -411,4 +441,3 @@ badgeEl.textContent='为 '+(data.yourName||'你')+' 与 '+(data.aiName||'TA')+' 
 mqEl.textContent=data.letter||'（在这里，对过去的自己温柔地道一声再见…）';
 </script>
 </body></html>
-
