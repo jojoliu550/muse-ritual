@@ -1,8 +1,9 @@
 /* 情绪博物馆 · 样式（浅色星空灰蓝 · v2） */
 :root{
-  --bg-0:#111728;
-  --bg-1:#151d32;
-  --card:#1b2540cc;            /* 半透明卡片 */
+  :root{
+  --bg-0:#121a2c;         /* 背景更浅一点 */
+  --bg-1:#16223b;
+  --card:#1e2948cc;       /* 卡片更透明（最后的 cc=80% 不透明度，可改 b3=70%） */
   --card-border:#2a3557;
   --text:#e9effa;
   --muted:#aab3cf;
@@ -124,6 +125,7 @@ textarea{min-height:100px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .kv{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .center{text-align:center}
+
 
 
 
