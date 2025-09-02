@@ -1,6 +1,6 @@
 <!doctype html><html lang="zh-CN"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>仪式进行中 · 情绪博物馆（v4.7）</title>
+<title>仪式进行中 · 情绪博物馆（v4.8）</title>
 <link rel="stylesheet" href="styles.css">
 <style>
 .scene{position:relative;min-height:100vh;border-radius:16px;overflow:hidden;background:#0b0f1a;}
@@ -28,7 +28,6 @@
 <main class="container">
   <div class="card">
     <div id="scene" class="scene">
-      <!-- 开场遮罩 -->
       <div id="hint" class="hint-overlay" onclick="if(event.target.id==='hint')__start(event)">
         <div class="hint-card" onclick="event.stopPropagation()">
           <div class="hint-title">准备开始</div>
@@ -40,7 +39,7 @@
           </div>
           <div id="recInfo" class="small" style="display:none"></div>
           <button id="startPlay" class="primary" onclick="__start(event)">开始</button>
-          <div class="small" style="margin-top:6px">说明：录音仅保存在本机，不上传</div>
+          <div class="small" style="margin-top:6px">录音只保存在本机，不上传</div>
         </div>
       </div>
 
@@ -61,14 +60,12 @@
 </main>
 <footer class="footer">© 情绪博物馆</footer>
 
-<!-- 打赏弹层 / 分享弹层：复用你仓库样式（略） -->
+<!-- 打赏/分享弹层（略，保持与你仓库一致） -->
 <style>
 .tip-mask{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:99999}
 .tip-card{background:#0f1117;border:1px solid #2a3042;border-radius:14px;padding:16px 16px 12px;max-width:440px;color:#eaeef5}
 .tip-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .tip-box{border:1px dashed #394058;border-radius:12px;min-height:180px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
-.tip-box img{max-width:100%;max-height:240px;display:block}
-.tip-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
 .share-mask{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9999}
 .share-card{background:#0f1117;border:1px solid #2a3042;border-radius:14px;padding:16px;max-width:480px;color:#eaeef5}
 .share-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -78,18 +75,10 @@
   <div class="tip-card">
     <h3>打赏支持（谢谢你）</h3>
     <div class="tip-grid">
-      <div class="tip-box">
-        <img id="wxQR" src="assets/tip_wechat.jpg" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-        <div class="tip-alt" style="display:none">放入<br>assets/tip_wechat.jpg</div>
-      </div>
-      <div class="tip-box">
-        <img id="aliQR" src="assets/tip_alipay.jpg" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-        <div class="tip-alt" style="display:none">放入<br>assets/tip_alipay.jpg</div>
-      </div>
+      <div class="tip-box"><img id="wxQR" src="assets/tip_wechat.jpg" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="tip-alt" style="display:none">放入<br>assets/tip_wechat.jpg</div></div>
+      <div class="tip-box"><img id="aliQR" src="assets/tip_alipay.jpg" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="tip-alt" style="display:none">放入<br>assets/tip_alipay.jpg</div></div>
     </div>
-    <div class="tip-actions">
-      <button class="secondary" onclick="document.getElementById('tipModal').style.display='none'">关闭</button>
-    </div>
+    <div class="tip-actions"><button class="secondary" onclick="document.getElementById('tipModal').style.display='none'">关闭</button></div>
   </div>
 </div>
 <div id="shareModal" class="share-mask" onclick="if(event.target===this)this.style.display='none'">
@@ -99,19 +88,12 @@
       <div class="share-box" style="padding:10px">
         <input id="shareInput" readonly style="width:100%;padding:10px;border-radius:8px;background:#0d0f18;color:#eaeef5;border:1px solid #2a3042">
         <p class="small" style="margin-top:8px">长按或点“复制”</p>
-        <div class="share-actions" style="justify-content:flex-start">
-          <button class="secondary" onclick="__copyShare()">复制</button>
-        </div>
+        <div class="share-actions" style="justify-content:flex-start"><button class="secondary" onclick="__copyShare()">复制</button></div>
       </div>
-      <div class="share-box">
-        <img id="shareQR" alt="二维码">
-        <div id="qrFallback" class="small" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center">二维码加载失败，请先复制链接</div>
-      </div>
+      <div class="share-box"><img id="shareQR" alt="二维码"><div id="qrFallback" class="small" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center">二维码加载失败，请先复制链接</div></div>
     </div>
     <div id="statsLine" class="small" style="margin-top:10px;text-align:center">累计观看：-- 次 · 完播：-- 次 · 打赏点击：-- 次</div>
-    <div class="share-actions">
-      <button class="secondary" onclick="document.getElementById('shareModal').style.display='none'">关闭</button>
-    </div>
+    <div class="share-actions"><button class="secondary" onclick="document.getElementById('shareModal').style.display='none'">关闭</button></div>
   </div>
 </div>
 
@@ -120,8 +102,8 @@ function $(id){return document.getElementById(id)}
 function parseData(){try{const raw=(location.hash||'').slice(1);if(!raw)return null;const b64=raw.split('&')[0];return JSON.parse(decodeURIComponent(escape(atob(b64))))}catch(e){return null}}
 const data=parseData(); if(!data){ document.body.innerHTML='<div class="container"><div class="card">数据丢失，请返回入口</div></div>'; throw new Error('no data'); }
 const key=String(data.ts), cid=(data.cid||String(data.ts)), id=key.slice(-6), isReplay=(location.hash||'').includes('view=1');
-const NS='muse-ritual';
-function bump(n){try{fetch('https://api.countapi.xyz/hit/'+NS+'/'+encodeURIComponent(n))}catch(e){}}
+
+const NS='muse-ritual'; function bump(n){try{fetch('https://api.countapi.xyz/hit/'+NS+'/'+encodeURIComponent(n))}catch(e){}}
 async function readC(n){try{const r=await fetch('https://api.countapi.xyz/get/'+NS+'/'+encodeURIComponent(n));const j=await r.json();return j&&typeof j.value==='number'?j.value:0}catch(e){return 0}}
 
 (function(){const d=document.createElement('div');d.id='soundDot';d.style.cssText='position:fixed;right:8px;top:8px;width:10px;height:10px;border-radius:50%;background:#f55;opacity:.9;z-index:99999';document.addEventListener('DOMContentLoaded',()=>document.body.appendChild(d));})();
@@ -131,39 +113,30 @@ const badgeEl=$('badge'), cdEl=$('countdown'), mqEl=$('marquee');
 badgeEl.textContent='为 '+(data.yourName||'你')+' 与 '+(data.aiName||'TA')+' 的仪式 · NO.'+id;
 mqEl.textContent=data.letter||'（在这里，对过去的自己温柔地道一声再见…）';
 
-/* 背景 + 流星 */
+/* 背景+星流 */
 (function(){
   const scene=$('scene');
   const custom = data.bgImageUrl || (function(){try{return sessionStorage.getItem('bg_'+key)||''}catch(_){return ''}})();
   if(custom){ scene.style.background='linear-gradient(to bottom, rgba(24,26,36,.30), rgba(24,26,36,.40)), url("'+custom+'") center/cover no-repeat'; }
-  const n=160; for(let i=0;i<n;i++){ const s=document.createElement('div'); s.className='star'; s.style.left=(Math.random()*120-10)+'vw'; s.style.top=(Math.random()*100)+'%'; s.style.setProperty('--spd',(9+Math.random()*13)+'s'); s.style.setProperty('--o',(0.45+Math.random()*0.5).toFixed(2)); scene.appendChild(s);}
+  for(let i=0;i<160;i++){const s=document.createElement('div');s.className='star';s.style.left=(Math.random()*120-10)+'vw';s.style.top=(Math.random()*100)+'%';s.style.setProperty('--spd',(9+Math.random()*13)+'s');s.style.setProperty('--o',(0.45+Math.random()*0.5).toFixed(2));scene.appendChild(s);}
   function meteor(){const m=document.createElement('div');m.className='meteor';m.style.left='100vw';m.style.top=(Math.random()*25)+'vh';scene.appendChild(m);setTimeout(()=>m.remove(),1700);setTimeout(meteor,3000+Math.random()*4000);} setTimeout(meteor,1500);
 })();
 
 /* 声音池/暂停 */
-const AUD=new Set();
-function addTrack(el){ if(!el) return; AUD.add(el); el.addEventListener('ended',()=>AUD.delete(el)); }
+const AUD=new Set(); function addTrack(el){ if(!el) return; AUD.add(el); el.addEventListener('ended',()=>AUD.delete(el)); }
 function pauseAll(){ AUD.forEach(a=>{try{!a.paused&&a.pause()}catch(_){}}); try{speechSynthesis&&speechSynthesis.pause&&speechSynthesis.pause()}catch(_){} }
 function resumeAll(){ AUD.forEach(a=>{try{a.paused&&a.play()}catch(_){}}); try{speechSynthesis&&speechSynthesis.resume&&speechSynthesis.resume()}catch(_){} }
 
 /* 解锁 + 试听 */
-function __unlock(){
-  try{const AC=window.AudioContext||window.webkitAudioContext;if(AC){const ctx=new AC();ctx.resume&&ctx.resume();const b=ctx.createBuffer(1,1,22050),src=ctx.createBufferSource();src.buffer=b;src.connect(ctx.destination);src.start(0);}}catch(_){}
-  try{const a=new Audio();a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBIAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=';a.muted=true;a.playsInline=true;a.play().then(()=>{a.pause();setDot(true);}).catch(()=>{});}catch(_){}
-}
+function __unlock(){try{const AC=window.AudioContext||window.webkitAudioContext;if(AC){const ctx=new AC();ctx.resume&&ctx.resume();const b=ctx.createBuffer(1,1,22050),src=ctx.createBufferSource();src.buffer=b;src.connect(ctx.destination);src.start(0);}}catch(_){}
+  try{const a=new Audio();a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBIAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=';a.muted=true;a.playsInline=true;a.play().then(()=>{a.pause();setDot(true);}).catch(()=>{});}catch(_){}}
 function __beep(ev){ev&&ev.stopPropagation();__unlock(); try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;const ctx=new AC();const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.value=880;g.gain.value=0.25;o.connect(g).connect(ctx.destination);o.start();setDot(true);setTimeout(()=>{try{o.stop();ctx.close&&ctx.close();}catch(_){}},180);}catch(_){}}
 
-/* BGM：保留引用以便压低/恢复 */
-let bgmEl=null, bgmTarget=(typeof data.bgmVol==='number'?data.bgmVol:0.28);
-function duck(on){
-  if(!bgmEl) return;
-  const to = on ? Math.max(0, bgmTarget*0.35) : bgmTarget;
-  const step=(to-(bgmEl.volume||0))/8; let n=8;
-  clearInterval(bgmEl.__duckT);
-  bgmEl.__duckT=setInterval(()=>{n--; try{bgmEl.volume=Math.max(0,Math.min(1,(bgmEl.volume||0)+step))}catch(_){ } if(n<=0) clearInterval(bgmEl.__duckT);},90);
-}
+/* BGM（ducking） */
+let bgmEl=null, bgmTarget=(typeof data.bgmVol==='number'?data.bgmVol:0.24);
+function duck(on){ if(!bgmEl) return; const to=on?Math.max(0,bgmTarget*0.25):bgmTarget; const step=(to-(bgmEl.volume||0))/10; let n=10; clearInterval(bgmEl.__duck); bgmEl.__duck=setInterval(()=>{n--; try{bgmEl.volume=Math.max(0,Math.min(1,(bgmEl.volume||0)+step))}catch(_){ } if(n<=0) clearInterval(bgmEl.__duck);},80); }
 
-/* 核心播放器：优先 audio，失败再 video；必要时抓取成 blob:URL */
+/* 核心播放器：audio→video→blob */
 const mediaBin=document.createElement('div'); mediaBin.style.cssText='position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;z-index:-1'; document.body.appendChild(mediaBin);
 async function playTag(tag,src,{loop=false,volume=1}={}){
   return new Promise(async(resolve,reject)=>{
@@ -175,98 +148,64 @@ async function playTag(tag,src,{loop=false,volume=1}={}){
     try{ await el.play(); }catch(e){ try{mediaBin.removeChild(el)}catch(_){ } reject(e); }
   });
 }
-async function fetchBlobURL(src){
-  try{ const r=await fetch(src,{mode:'cors'}); if(!r.ok) throw new Error('net'); const b=await r.blob(); return URL.createObjectURL(b); }catch(e){ return null; }
-}
-async function playOne(src,{loop=false,volume=1}={}){
-  if(!src) return false;
-  const ext=(src.split('?')[0].split('#')[0].split('.').pop()||'').toLowerCase();
-  const likelyVideo = /(^https?:\/\/.*\/video\/upload\/)|\b(mp4|mov|m4v)\b/.test(src);
-  try{ if(!likelyVideo){ await playTag('audio',src,{loop,volume}); return true; } }catch(_){}
+async function fetchBlobURL(src){ try{ const r=await fetch(src,{mode:'cors'}); if(!r.ok) throw 0; const b=await r.blob(); return URL.createObjectURL(b); }catch(_){ return null; } }
+async function playOne(src,{loop=false,volume=1}={}){ if(!src) return false; const ext=(src.split('?')[0].split('#')[0].split('.').pop()||'').toLowerCase(); const maybeVideo=/\b(mp4|mov|m4v)\b/.test(ext) || /\/video\/upload\//.test(src);
+  try{ if(!maybeVideo){ await playTag('audio',src,{loop,volume}); return true; } }catch(_){}
   try{ await playTag('video',src,{loop,volume}); return true; }catch(_){}
-  const blob=await fetchBlobURL(src);
-  if(blob){ try{ if(!likelyVideo){ await playTag('audio',blob,{loop,volume}); return true; } }catch(_){}
-             try{ await playTag('video',blob,{loop,volume}); return true; }catch(_){ } }
-  return false;
-}
-
-/* 资源选择（URL → sessionStorage → 资产） */
+  const blob=await fetchBlobURL(src); if(blob){ try{ if(!maybeVideo){ await playTag('audio',blob,{loop,volume}); return true; } }catch(_){}
+    try{ await playTag('video',blob,{loop,volume}); return true; }catch(_){} }
+  return false; }
 function ss(k){try{return sessionStorage.getItem(k)||''}catch(_){return ''}}
 async function firstPlayable(list,opt={}){ for(const u of list){ if(!u) continue; if(await playOne(u,opt)) return true; } return false; }
 
-/* 预热 & BGM 渐入 */
+/* BGM 渐入 */
 async function startBGM(){
-  const cands=[ data.bgmUrl, ss('bgm_'+key), 'assets/bgm_default.m4a','assets/bgm_default.mp3','assets/bgm_default.ogg','assets/bgm_default.wav' ];
-  // 用真正的 <audio> 播放（不做预热，直接渐入）
-  for(const u of cands){
-    if(!u) continue;
-    try{
-      const a=document.createElement('audio'); a.src=u; a.playsInline=true; a.loop=true; a.volume=0.001; a.preload='auto';
-      mediaBin.appendChild(a); addTrack(a); bgmEl=a;
-      await a.play().catch(()=>{throw 1});
-      let n=14,step=(bgmTarget-a.volume)/n; const id=setInterval(()=>{n--; try{a.volume=Math.min(bgmTarget,(a.volume||0)+step)}catch(_){ } if(n<=0) clearInterval(id); },120);
-      return true;
-    }catch(_){ try{bgmEl&&mediaBin.removeChild(bgmEl)}catch(__){} bgmEl=null; }
-  }
+  const c=[ data.bgmUrl, ss('bgm_'+key), 'assets/bgm_default.m4a','assets/bgm_default.mp3','assets/bgm_default.ogg','assets/bgm_default.wav' ];
+  for(const u of c){ if(!u) continue;
+    try{ const a=document.createElement('audio'); a.src=u; a.playsInline=true; a.loop=true; a.volume=0.001; a.preload='auto'; mediaBin.appendChild(a); addTrack(a); bgmEl=a;
+      await a.play().catch(()=>{throw 1}); let n=14,step=(bgmTarget-a.volume)/n; const id=setInterval(()=>{n--; try{a.volume=Math.min(bgmTarget,(a.volume||0)+step)}catch(_){ } if(n<=0) clearInterval(id); },120); return true; }
+    catch(_){ try{bgmEl&&mediaBin.removeChild(bgmEl)}catch(__){} bgmEl=null; } }
   return false;
 }
 
-/* TTS：加缓冲，给暂停键可控 */
-async function speakTTS(text,pref){
-  const synth=window.speechSynthesis; if(!synth || !text) return;
-  try{synth.resume&&synth.resume();}catch(_){}
-  await new Promise(r=>setTimeout(r,100));
+/* TTS */
+async function speakTTS(text,pref){ const synth=window.speechSynthesis; if(!synth || !text) return; try{synth.resume&&synth.resume();}catch(_){}
+  await new Promise(r=>setTimeout(r,120));
   function pick(){ const vs=synth.getVoices()||[]; const want=(pref==='male')?['Tao','Daniel','Alex','Google US English','Google Mandarin']:['Xiaoxiao','Xiaoyi','Yating','Samantha','Google 中文','Google Mandarin']; for(const w of want){const hit=vs.find(v=>(v.name||'').toLowerCase().includes(w.toLowerCase())); if(hit) return hit;} return vs[0]||null;}
-  const u=new SpeechSynthesisUtterance(text), v=pick(); if(v){u.voice=v;u.lang=v.lang||'zh-CN'} else u.lang='zh-CN';
-  u.rate=(pref==='male'?0.95:0.98); u.pitch=(pref==='male'?0.96:1.04);
+  const u=new SpeechSynthesisUtterance(text), v=pick(); if(v){u.voice=v;u.lang=v.lang||'zh-CN'} else u.lang='zh-CN'; u.rate=(pref==='male'?0.95:0.98); u.pitch=(pref==='male'?0.96:1.04);
   addTrack({pause:()=>synth.pause&&synth.pause(), play:()=>synth.resume&&synth.resume()});
   await new Promise(res=>{u.onend=res;u.onerror=res; try{synth.speak(u);}catch(_){res();} setTimeout(res,15000);});
 }
 
-/* 主段原声（URL→随页→assets→TTS） + BGM 压低/恢复 */
+/* 主段原声：URL→随页→assets→TTS */
 async function playMain(){
   duck(true);
-  const ok=await firstPlayable([
-    data.voiceUrl, ss('voice_'+key),
+  const ok=await firstPlayable([ data.voiceUrl, ss('voice_'+key),
     'assets/voice_user.m4a','assets/voice_user.mp3','assets/voice_user.ogg','assets/voice_user.wav',
     'assets/cove_default.m4a','assets/cove_default.mp3','assets/cove_default.ogg','assets/cove_default.wav'
   ],{loop:false,volume:1});
-  if(!ok){
-    const text=(data.letter||''); 
-    if(text.trim()){ await speakTTS(text,(data.reader_gender||'female')); }
-    else{ await speakTTS('此处是你的原声纪念段落。下次可在入口页选择“原声文件”或粘贴文字。',(data.reader_gender||'female')); }
-  }
+  if(!ok){ const text=(data.letter||''); if(text.trim()){ await speakTTS(text,(data.reader_gender||'female')); } else { await speakTTS('此处是你的原声纪念段落。',(data.reader_gender||'female')); } }
   duck(false);
 }
 
 /* 倒计时（仅显示） */
 let paused=false,endAt=0,tickId=null,okFinish=false,closeDone=false;
-function startClock(sec){
-  endAt=Date.now()+sec*1000;
-  function tick(){
-    if(paused){ tickId=setTimeout(tick,300); return; }
-    const left=Math.max(0,Math.ceil((endAt-Date.now())/1000));
-    cdEl.textContent=String(Math.floor(left/60)).padStart(2,'0')+':'+String(left%60).padStart(2,'0');
-    if(left===0){ okFinish=true; if(closeDone) __finish(); else tickId=setTimeout(tick,250); }
-    else{ tickId=setTimeout(tick,250); }
-  }
-  if(tickId) clearTimeout(tickId); tick();
-}
+function startClock(sec){ endAt=Date.now()+sec*1000; function tick(){ if(paused){ tickId=setTimeout(tick,300); return; } const left=Math.max(0,Math.ceil((endAt-Date.now())/1000));
+  cdEl.textContent=String(Math.floor(left/60)).padStart(2,'0')+':'+String(left%60).padStart(2,'0'); if(left===0){ okFinish=true; if(closeDone) __finish(); else tickId=setTimeout(tick,250);} else { tickId=setTimeout(tick,250);} }
+  if(tickId) clearTimeout(tickId); tick(); }
 
-/* 播放队列：严格串行 */
+/* 串行队列 */
 let Q=Promise.resolve(); function step(fn){ Q=Q.then(fn).catch(()=>{}); return Q; }
 
 /* 录音（保留） */
 let rec=null, recChunks=[], recStream=null, recTimer=null, recStart=0;
 function __toggleRec(ev){ev&&ev.stopPropagation(); if(rec&&rec.state==='recording'){__stopRec();return} __startRec();}
-function __startRec(){
-  __unlock(); const btn=$('recBtn'),info=$('recInfo'); if(info){info.style.display='block';info.textContent='请求麦克风权限…'}
+function __startRec(){ __unlock(); const btn=$('recBtn'),info=$('recInfo'); if(info){info.style.display='block';info.textContent='请求麦克风权限…'}
   let mime=''; try{ if(window.MediaRecorder&&MediaRecorder.isTypeSupported){ if(MediaRecorder.isTypeSupported('audio/mp4')) mime='audio/mp4'; else if(MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) mime='audio/webm;codecs=opus'; else if(MediaRecorder.isTypeSupported('audio/webm')) mime='audio/webm'; } }catch(_){}
   navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
     recStream=stream; recChunks=[]; try{rec=new MediaRecorder(stream,mime?{mimeType:mime}:{})}catch(e){rec=new MediaRecorder(stream)}
     rec.ondataavailable=e=>{ if(e.data&&e.data.size>0) recChunks.push(e.data); };
-    rec.onstop=()=>{
-      try{recStream.getTracks().forEach(t=>t.stop());}catch(_){}
+    rec.onstop=()=>{ try{recStream.getTracks().forEach(t=>t.stop());}catch(_){}
       const blob=new Blob(recChunks,{type:mime||'audio/webm'}); const fr=new FileReader();
       fr.onload=()=>{ try{sessionStorage.setItem('voice_'+key,fr.result);}catch(_){}
         if(info){info.textContent='已录制 '+Math.round((Date.now()-recStart)/1000)+' 秒（开始后会播放）'} btn.textContent='🎙️ 重新录音';
@@ -276,9 +215,9 @@ function __startRec(){
   }).catch(()=>{ const info=$('recInfo'); if(info){info.textContent='无法获取麦克风权限（请在浏览器设置里允许麦克风）'} });
 }
 function __stopRec(){ const btn=$('recBtn'),info=$('recInfo'); try{rec&&rec.state==='recording'&&rec.stop()}catch(_){}
-  if(recTimer){clearTimeout(recTimer);recTimer=null} if(btn) btn.textContent='🎙️ 重新录音'; if(info){info.style.display='block';info.textContent='录音结束'} }
+  if(recTimer){clearTimeout(recTimer);recTimer=null} if(btn) btn.textContent='🎙️ 重新录音'; if(info){info.textContent='录音结束'} }
 
-/* —— 开始 —— */
+/* —— 开始（严格二选一：开场音轨 或 TTS） —— */
 async function __start(ev){
   ev&&ev.stopPropagation(); if(window.__started) return; window.__started=true; setDot(true);
   $('hint').style.display='none'; __unlock();
@@ -290,59 +229,47 @@ async function __start(ev){
   const openText=(data.emcee_open||'').replace('{meName}',me).replace('{aiName}',ai);
   const closeText=(data.emcee_close||'');
 
-  // 判定是否有“司仪开场音轨”
-  const hasOpenAudio = await firstPlayable(['assets/emcee_'+((data.emcee_gender||'female')==='male'?'male':'female')+'_open.m4a'],{volume:0.001})
-                        || await firstPlayable(['assets/emcee_'+((data.emcee_gender||'female')==='male'?'male':'female')+'_open.mp3'],{volume:0.001});
+  const g=(data.emcee_gender||'female')==='male'?'male':'female';
+  const openSources=['assets/emcee_'+g+'_open.m4a','assets/emcee_'+g+'_open.mp3','assets/emcee_'+g+'_open.ogg','assets/emcee_'+g+'_open.wav'];
+  const closeSources=['assets/emcee_'+g+'_close.m4a','assets/emcee_'+g+'_close.mp3','assets/emcee_'+g+'_close.ogg','assets/emcee_'+g+'_close.wav'];
 
-  // 1) 开场：规则——若有开场音轨，则“只播音轨，不再TTS点名”；否则 TTS（点名+开场词）
-  if(hasOpenAudio){
-    step(async()=>{ duck(true); await firstPlayable(['assets/emcee_'+((data.emcee_gender||'female')==='male'?'male':'female')+'_open.m4a','assets/emcee_'+((data.emcee_gender||'female')==='male'?'male':'female')+'_open.mp3','assets/emcee_'+((data.emcee_gender||'female')==='male'?'male':'female')+'_open.ogg','assets/emcee_'+((data.emcee_gender||'female')==='male'?'male':'female')+'_open.wav'],{volume:1}); duck(false); });
-  }else{
-    step(async()=>{ duck(true); await speakTTS(`现在，为 ${me} 与 ${ai} 的仪式开始。`,(data.emcee_gender||'female')); if(openText.trim()) await speakTTS(openText,(data.emcee_gender||'female')); duck(false); });
-  }
+  // 开场：尝试播放开场音轨；失败才改用 TTS（点名+开场词）
+  step(async()=>{ duck(true);
+    const ok=await firstPlayable(openSources,{volume:1});
+    if(!ok){ await speakTTS(`现在，为 ${me} 与 ${ai} 的仪式开始。`,(data.emcee_gender||'female')); if(openText.trim()) await speakTTS(openText,(data.emcee_gender||'female')); }
+    duck(false);
+  });
 
-  // 2) 主段
+  // 主段
   step(async()=>{ await playMain(); });
 
-  // 3) 结尾：在结束前 8~10 秒排入队列；等前面播完再播，绝不重叠
+  // 结尾：到点前 8~10 秒入队，绝不重叠
   const dur=Number(data.duration)||180, CLOSE_BEFORE=dur>=300?10:dur>=180?9:8;
   const ms=Math.max(0,(endAt-Date.now())-CLOSE_BEFORE*1000);
-  setTimeout(()=>{
-    step(async()=>{ duck(true);
-      const ok=await firstPlayable(['assets/emcee_'+((data.emcee_gender||'female')==='male'?'male':'female')+'_close.m4a','assets/emcee_'+((data.emcee_gender||'female')==='male'?'male':'female')+'_close.mp3','assets/emcee_'+((data.emcee_gender||'female')==='male'?'male':'female')+'_close.ogg','assets/emcee_'+((data.emcee_gender||'female')==='male'?'male':'female')+'_close.wav'],{volume:1});
-      if(!ok && closeText.trim()) await speakTTS(closeText,(data.emcee_gender||'female'));
-      duck(false); closeDone=true; if(okFinish) __finish();
-    });
-  }, ms);
+  setTimeout(()=>{ step(async()=>{ duck(true);
+    const ok=await firstPlayable(closeSources,{volume:1});
+    if(!ok && closeText.trim()) await speakTTS(closeText,(data.emcee_gender||'female'));
+    duck(false); closeDone=true; if(okFinish) __finish();
+  }); }, ms);
 
   if(isReplay){ bump('view_'+cid); }
 }
 
 /* 暂停/继续 */
-function __pause(){
-  if(!paused){ paused=true; $('pause').textContent='继续'; pauseAll(); }
-  else{ paused=false; $('pause').textContent='暂停'; const t=cdEl.textContent.split(':'), left=(parseInt(t[0]||'0')*60+parseInt(t[1]||'0'))||0; endAt=Date.now()+left*1000; resumeAll(); }
-}
+function __pause(){ if(!paused){ paused=true; $('pause').textContent='继续'; pauseAll(); } else { paused=false; $('pause').textContent='暂停'; const t=cdEl.textContent.split(':'), left=(parseInt(t[0]||'0')*60+parseInt(t[1]||'0'))||0; endAt=Date.now()+left*1000; resumeAll(); } }
 
 /* 结束 */
 function __finishNow(){ closeDone=true; okFinish=true; __finish(); }
-function __finish(){
-  try{bump('finish_'+cid)}catch(_){}
-  try{
-    AUD.forEach(a=>{ try{
-      if(a.loop){ let n=10,step=(a.volume||0)/10; const id=setInterval(()=>{n--; try{a.volume=Math.max(0,(a.volume||0)-step)}catch(_){ } if(n<=0){clearInterval(id); try{a.pause()}catch(_){}}},100); }
-      else{ a.pause(); }
-    }catch(_){ }});
-  }catch(_){}
+function __finish(){ try{bump('finish_'+cid)}catch(_){}
+  try{ AUD.forEach(a=>{ try{ if(a.loop){ let n=10,step=(a.volume||0)/10; const id=setInterval(()=>{n--; try{a.volume=Math.max(0,(a.volume||0)-step)}catch(_){ } if(n<=0){clearInterval(id); try{a.pause()}catch(_){}}},100); } else { a.pause(); } }catch(_){ } }); }catch(_){}
   location.href='certificate.html#'+location.hash.slice(1);
 }
 
-/* 分享/打赏 */
+/* 分享/打赏（略） */
 function __landingURL(){ try{ const u=new URL('index.html',location.href).href; return u.replace(/index\.html(\?|#|$)/,'$1'); }catch(e){ return 'index.html'; } }
 function __openShare(link,title){ const m=$('shareModal'),i=$('shareInput'),qr=$('shareQR'),t=$('shareTitle'),fb=$('qrFallback'); if(t)t.textContent=title||'分享链接'; if(!m||!i||!qr)return; i.value=link; if(fb)fb.style.display='none';
   const p='https://api.qrserver.com/v1/create-qr-code/?size=240x240&data='+encodeURIComponent(link), b='https://quickchart.io/qr?size=240&text='+encodeURIComponent(link);
-  qr.onerror=function(){qr.onerror=null;qr.src=b;qr.onload=null;setTimeout(()=>{if(qr.naturalWidth===0&&fb){fb.style.display='flex'}},1000)}; qr.src=p; m.style.display='flex'; __updateShareStats();
-}
+  qr.onerror=function(){qr.onerror=null;qr.src=b;qr.onload=null;setTimeout(()=>{if(qr.naturalWidth===0&&fb){fb.style.display='flex'}},1000)}; qr.src=p; m.style.display='flex'; __updateShareStats(); }
 async function __updateShareStats(){ const el=$('statsLine'); if(!el) return; const v=await readC('view_'+cid), f=await readC('finish_'+cid), t=await readC('tip_open_'+cid); el.textContent='累计观看：'+v+' 次 · 完播：'+f+' 次 · 打赏点击：'+t+' 次'; }
 function __copyShare(){ const i=$('shareInput'); if(!i) return; i.select(); i.setSelectionRange(0,99999); try{navigator.clipboard.writeText(i.value).then(()=>alert('已复制链接'))}catch(e){try{document.execCommand('copy');alert('已复制链接')}catch(_){alert('复制失败，请长按输入框复制')}} }
 function __shareLanding(){ const link=__landingURL(); try{ if(navigator.share){navigator.share({title:'情绪博物馆',url:link}).catch(()=>__openShare(link,'邀请好友来玩'));} else {__openShare(link,'邀请好友来玩');} }catch(_){ __openShare(link,'邀请好友来玩'); } }
@@ -353,4 +280,5 @@ function __tip(){ try{bump('tip_open_'+cid)}catch(_){ } const m=$('tipModal'); i
 document.addEventListener('WeixinJSBridgeReady',()=>{try{resumeAll()}catch(_){ } setDot(true)},false);
 </script>
 </body></html>
+
 
