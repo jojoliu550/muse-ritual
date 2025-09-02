@@ -1,23 +1,18 @@
 <!doctype html><html lang="zh-CN"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>仪式进行中 · 情绪博物馆（v4.6 顺序锁定·星流）</title>
+<title>仪式进行中 · 情绪博物馆（v4.7）</title>
 <link rel="stylesheet" href="styles.css">
 <style>
-/* —— 强制内置星空与流星动画（不依赖外部样式） —— */
-.scene{position:relative;min-height:100vh;border-radius:16px;overflow:hidden;background:radial-gradient(1000px 600px at 50% -200px, rgba(255,255,255,.06), rgba(0,0,0,0)) #0b0f1a;}
+.scene{position:relative;min-height:100vh;border-radius:16px;overflow:hidden;background:#0b0f1a;}
 .star{position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;opacity:var(--o,.7);
-  animation:twinkle 2.6s ease-in-out infinite, drift var(--spd,12s) linear infinite;}
+  animation:twinkle 2.4s ease-in-out infinite, drift var(--spd,12s) linear infinite;}
 @keyframes twinkle{0%,100%{opacity:.25}50%{opacity:1}}
 @keyframes drift{from{transform:translate3d(0,0,0)} to{transform:translate3d(-60vw,40vh,0)}}
 .meteor{position:absolute;width:2px;height:2px;background:transparent;
   box-shadow:0 0 6px 2px rgba(255,255,255,.95);transform:rotate(320deg);
   animation:shoot 1.6s linear forwards;}
-@keyframes shoot{
-  0%{opacity:0; transform:translate(100vw,-10vh) rotate(320deg)}
-  10%{opacity:1}
-  100%{opacity:0; transform:translate(-10vw,60vh) rotate(320deg)}
-}
-/* 开场遮罩/按钮区（与你现有风格一致） */
+@keyframes shoot{0%{opacity:0;transform:translate(100vw,-10vh) rotate(320deg)}
+10%{opacity:1}100%{opacity:0;transform:translate(-10vw,60vh) rotate(320deg)}}
 .hint-overlay{position:fixed;inset:0;background:rgba(0,0,0,.50);display:flex;align-items:center;justify-content:center;z-index:9999}
 .hint-card{background:#0f1117;border:1px solid #2a3042;border-radius:16px;padding:16px;max-width:480px;color:#eaeef5;text-align:center;max-height:72vh;overflow:auto}
 .hint-title{font-size:18px;margin:2px 0 8px}
@@ -45,11 +40,10 @@
           </div>
           <div id="recInfo" class="small" style="display:none"></div>
           <button id="startPlay" class="primary" onclick="__start(event)">开始</button>
-          <div class="small" style="margin-top:6px">说明：录音仅保存在本机临时内存，不上传</div>
+          <div class="small" style="margin-top:6px">说明：录音仅保存在本机，不上传</div>
         </div>
       </div>
 
-      <!-- 舞台信息/动作 -->
       <div class="badge" id="badge"></div>
       <div class="countdown" id="countdown">--:--</div>
       <div class="marquee" id="marquee"></div>
@@ -67,15 +61,18 @@
 </main>
 <footer class="footer">© 情绪博物馆</footer>
 
-<!-- 打赏弹层（与你现有一致） -->
+<!-- 打赏弹层 / 分享弹层：复用你仓库样式（略） -->
 <style>
 .tip-mask{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:99999}
 .tip-card{background:#0f1117;border:1px solid #2a3042;border-radius:14px;padding:16px 16px 12px;max-width:440px;color:#eaeef5}
 .tip-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .tip-box{border:1px dashed #394058;border-radius:12px;min-height:180px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
 .tip-box img{max-width:100%;max-height:240px;display:block}
-.tip-alt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aab3cf;font-size:13px}
 .tip-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
+.share-mask{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9999}
+.share-card{background:#0f1117;border:1px solid #2a3042;border-radius:14px;padding:16px;max-width:480px;color:#eaeef5}
+.share-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.share-box{border:1px dashed #394058;border-radius:12px;min-height:160px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
 </style>
 <div id="tipModal" class="tip-mask" onclick="if(event.target===this)this.style.display='none'">
   <div class="tip-card">
@@ -95,16 +92,6 @@
     </div>
   </div>
 </div>
-
-<!-- 分享弹层（与你现有一致） -->
-<style>
-.share-mask{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:9999}
-.share-card{background:#0f1117;border:1px solid #2a3042;border-radius:14px;padding:16px;max-width:480px;color:#eaeef5}
-.share-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.share-box{border:1px dashed #394058;border-radius:12px;min-height:160px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
-.share-box img{max-width:100%;max-height:220px;display:block}
-.share-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
-</style>
 <div id="shareModal" class="share-mask" onclick="if(event.target===this)this.style.display='none'">
   <div class="share-card">
     <h3 id="shareTitle">分享链接</h3>
@@ -129,11 +116,9 @@
 </div>
 
 <script>
-/* ====== 工具与数据 ====== */
 function $(id){return document.getElementById(id)}
 function parseData(){try{const raw=(location.hash||'').slice(1);if(!raw)return null;const b64=raw.split('&')[0];return JSON.parse(decodeURIComponent(escape(atob(b64))))}catch(e){return null}}
 const data=parseData(); if(!data){ document.body.innerHTML='<div class="container"><div class="card">数据丢失，请返回入口</div></div>'; throw new Error('no data'); }
-
 const key=String(data.ts), cid=(data.cid||String(data.ts)), id=key.slice(-6), isReplay=(location.hash||'').includes('view=1');
 const NS='muse-ritual';
 function bump(n){try{fetch('https://api.countapi.xyz/hit/'+NS+'/'+encodeURIComponent(n))}catch(e){}}
@@ -146,146 +131,130 @@ const badgeEl=$('badge'), cdEl=$('countdown'), mqEl=$('marquee');
 badgeEl.textContent='为 '+(data.yourName||'你')+' 与 '+(data.aiName||'TA')+' 的仪式 · NO.'+id;
 mqEl.textContent=data.letter||'（在这里，对过去的自己温柔地道一声再见…）';
 
-/* 星空：强制渲染+流星 */
-(function renderStars(){
+/* 背景 + 流星 */
+(function(){
   const scene=$('scene');
-  // 自定义背景（URL优先）
   const custom = data.bgImageUrl || (function(){try{return sessionStorage.getItem('bg_'+key)||''}catch(_){return ''}})();
-  if(custom){ scene.style.backgroundImage='linear-gradient(to bottom, rgba(24,26,36,.30), rgba(24,26,36,.40)), url("'+custom+'")'; scene.style.backgroundSize='cover'; scene.style.backgroundPosition='center'; }
-  // 星点
-  for(let i=0;i<160;i++){
-    const s=document.createElement('div'); s.className='star';
-    s.style.left=(Math.random()*120-10)+'vw'; s.style.top=(Math.random()*100)+'%';
-    s.style.setProperty('--spd',(9+Math.random()*13)+'s'); s.style.setProperty('--o',(0.45+Math.random()*0.5).toFixed(2));
-    scene.appendChild(s);
-  }
-  // 流星
-  function spawnMeteor(){
-    const m=document.createElement('div'); m.className='meteor';
-    m.style.left='100vw'; m.style.top=(Math.random()*25)+'vh';
-    scene.appendChild(m); setTimeout(()=>m.remove(),1700);
-    setTimeout(spawnMeteor, 3000+Math.random()*4000);
-  }
-  setTimeout(spawnMeteor, 1500);
+  if(custom){ scene.style.background='linear-gradient(to bottom, rgba(24,26,36,.30), rgba(24,26,36,.40)), url("'+custom+'") center/cover no-repeat'; }
+  const n=160; for(let i=0;i<n;i++){ const s=document.createElement('div'); s.className='star'; s.style.left=(Math.random()*120-10)+'vw'; s.style.top=(Math.random()*100)+'%'; s.style.setProperty('--spd',(9+Math.random()*13)+'s'); s.style.setProperty('--o',(0.45+Math.random()*0.5).toFixed(2)); scene.appendChild(s);}
+  function meteor(){const m=document.createElement('div');m.className='meteor';m.style.left='100vw';m.style.top=(Math.random()*25)+'vh';scene.appendChild(m);setTimeout(()=>m.remove(),1700);setTimeout(meteor,3000+Math.random()*4000);} setTimeout(meteor,1500);
 })();
 
-/* 声音池：统一暂停/继续 */
+/* 声音池/暂停 */
 const AUD=new Set();
-function addAudioEl(el){ if(!el) return; AUD.add(el); el.addEventListener('ended',()=>AUD.delete(el)); }
-function pauseAll(){ AUD.forEach(a=>{try{!a.paused && a.pause()}catch(_){}}); try{speechSynthesis&&speechSynthesis.pause&&speechSynthesis.pause()}catch(_){} }
-function resumeAll(){ AUD.forEach(a=>{try{a.paused && a.play()}catch(_){}}); try{speechSynthesis&&speechSynthesis.resume&&speechSynthesis.resume()}catch(_){} }
+function addTrack(el){ if(!el) return; AUD.add(el); el.addEventListener('ended',()=>AUD.delete(el)); }
+function pauseAll(){ AUD.forEach(a=>{try{!a.paused&&a.pause()}catch(_){}}); try{speechSynthesis&&speechSynthesis.pause&&speechSynthesis.pause()}catch(_){} }
+function resumeAll(){ AUD.forEach(a=>{try{a.paused&&a.play()}catch(_){}}); try{speechSynthesis&&speechSynthesis.resume&&speechSynthesis.resume()}catch(_){} }
 
-/* iOS/微信解锁 */
+/* 解锁 + 试听 */
 function __unlock(){
   try{const AC=window.AudioContext||window.webkitAudioContext;if(AC){const ctx=new AC();ctx.resume&&ctx.resume();const b=ctx.createBuffer(1,1,22050),src=ctx.createBufferSource();src.buffer=b;src.connect(ctx.destination);src.start(0);}}catch(_){}
   try{const a=new Audio();a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBIAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=';a.muted=true;a.playsInline=true;a.play().then(()=>{a.pause();setDot(true);}).catch(()=>{});}catch(_){}
 }
 function __beep(ev){ev&&ev.stopPropagation();__unlock(); try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;const ctx=new AC();const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.value=880;g.gain.value=0.25;o.connect(g).connect(ctx.destination);o.start();setDot(true);setTimeout(()=>{try{o.stop();ctx.close&&ctx.close();}catch(_){}},180);}catch(_){}}
 
-/* 媒体创建：先 <audio>，失败再 <video>（兼容 mp4/mov 录屏） */
+/* BGM：保留引用以便压低/恢复 */
+let bgmEl=null, bgmTarget=(typeof data.bgmVol==='number'?data.bgmVol:0.28);
+function duck(on){
+  if(!bgmEl) return;
+  const to = on ? Math.max(0, bgmTarget*0.35) : bgmTarget;
+  const step=(to-(bgmEl.volume||0))/8; let n=8;
+  clearInterval(bgmEl.__duckT);
+  bgmEl.__duckT=setInterval(()=>{n--; try{bgmEl.volume=Math.max(0,Math.min(1,(bgmEl.volume||0)+step))}catch(_){ } if(n<=0) clearInterval(bgmEl.__duckT);},90);
+}
+
+/* 核心播放器：优先 audio，失败再 video；必要时抓取成 blob:URL */
 const mediaBin=document.createElement('div'); mediaBin.style.cssText='position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;z-index:-1'; document.body.appendChild(mediaBin);
+async function playTag(tag,src,{loop=false,volume=1}={}){
+  return new Promise(async(resolve,reject)=>{
+    const el=document.createElement(tag); el.src=src; el.playsInline=true; el.controls=false; el.loop=!!loop; el.muted=false; el.preload='auto'; el.volume=volume;
+    if(tag==='video'){ el.setAttribute('playsinline',''); el.setAttribute('webkit-playsinline',''); el.style.width='1px'; el.style.height='1px'; }
+    mediaBin.appendChild(el); addTrack(el);
+    el.onended=()=>{ try{mediaBin.removeChild(el)}catch(_){ } resolve(true);};
+    el.onerror=()=>{ try{mediaBin.removeChild(el)}catch(_){ } reject(new Error('error'));};
+    try{ await el.play(); }catch(e){ try{mediaBin.removeChild(el)}catch(_){ } reject(e); }
+  });
+}
+async function fetchBlobURL(src){
+  try{ const r=await fetch(src,{mode:'cors'}); if(!r.ok) throw new Error('net'); const b=await r.blob(); return URL.createObjectURL(b); }catch(e){ return null; }
+}
 async function playOne(src,{loop=false,volume=1}={}){
-  async function tryTag(tag){
-    return new Promise(async(resolve,reject)=>{
-      const el=document.createElement(tag); el.src=src; el.crossOrigin='anonymous'; el.playsInline=true; el.controls=false; el.loop=!!loop; el.muted=false; el.preload='auto';
-      if(tag==='video'){ el.style.width='1px'; el.style.height='1px'; }
-      el.volume=volume;
-      mediaBin.appendChild(el); addAudioEl(el);
-      el.onended=()=>{ try{mediaBin.removeChild(el)}catch(_){ } resolve(true); };
-      el.onerror=()=>{ try{mediaBin.removeChild(el)}catch(_){ } reject(new Error('error')); };
-      try{
-        await el.play();  // 若能直接播，等待 ended 回调
-      }catch(e){
-        try{mediaBin.removeChild(el)}catch(_){ }
-        reject(e);
-      }
-    });
-  }
-  try{ await tryTag('audio'); return true; }catch(_){ }
-  try{ await tryTag('video'); return true; }catch(_){ }
+  if(!src) return false;
+  const ext=(src.split('?')[0].split('#')[0].split('.').pop()||'').toLowerCase();
+  const likelyVideo = /(^https?:\/\/.*\/video\/upload\/)|\b(mp4|mov|m4v)\b/.test(src);
+  try{ if(!likelyVideo){ await playTag('audio',src,{loop,volume}); return true; } }catch(_){}
+  try{ await playTag('video',src,{loop,volume}); return true; }catch(_){}
+  const blob=await fetchBlobURL(src);
+  if(blob){ try{ if(!likelyVideo){ await playTag('audio',blob,{loop,volume}); return true; } }catch(_){}
+             try{ await playTag('video',blob,{loop,volume}); return true; }catch(_){ } }
   return false;
 }
 
-/* 资源选择（URL 优先 → 随页 → assets） */
-function ss(key){ try{return sessionStorage.getItem(key)||''}catch(_){return ''} }
-async function pickPlayable(sources,{loop=false,volume=1,prewarm=false}={}){
-  for(const s of sources){
-    if(!s) continue;
-    // 预热：尝试静音播一下再停（仅音频）
-    if(prewarm){
-      try{
-        const a=new Audio(); a.src=s; a.muted=true; a.playsInline=true; await a.play(); a.pause(); a.muted=false; return (opt)=>playOne(s,opt);
-      }catch(_){ continue; }
-    }else{
-      const ok=await (async()=>{ try{await playOne(s,{loop,volume}); return true;}catch(_){return false;} })();
-      if(ok) return async()=>true;
-    }
+/* 资源选择（URL → sessionStorage → 资产） */
+function ss(k){try{return sessionStorage.getItem(k)||''}catch(_){return ''}}
+async function firstPlayable(list,opt={}){ for(const u of list){ if(!u) continue; if(await playOne(u,opt)) return true; } return false; }
+
+/* 预热 & BGM 渐入 */
+async function startBGM(){
+  const cands=[ data.bgmUrl, ss('bgm_'+key), 'assets/bgm_default.m4a','assets/bgm_default.mp3','assets/bgm_default.ogg','assets/bgm_default.wav' ];
+  // 用真正的 <audio> 播放（不做预热，直接渐入）
+  for(const u of cands){
+    if(!u) continue;
+    try{
+      const a=document.createElement('audio'); a.src=u; a.playsInline=true; a.loop=true; a.volume=0.001; a.preload='auto';
+      mediaBin.appendChild(a); addTrack(a); bgmEl=a;
+      await a.play().catch(()=>{throw 1});
+      let n=14,step=(bgmTarget-a.volume)/n; const id=setInterval(()=>{n--; try{a.volume=Math.min(bgmTarget,(a.volume||0)+step)}catch(_){ } if(n<=0) clearInterval(id); },120);
+      return true;
+    }catch(_){ try{bgmEl&&mediaBin.removeChild(bgmEl)}catch(__){} bgmEl=null; }
   }
-  return null;
+  return false;
 }
 
-/* BGM 预热 + 渐入 */
-let bgmPlay=null, emceeOpenPlay=null, emceeClosePlay=null;
-async function prewarmAll(){
-  const bgmSrc=[ data.bgmUrl, ss('bgm_'+key), 'assets/bgm_default.m4a','assets/bgm_default.mp3','assets/bgm_default.ogg','assets/bgm_default.wav' ];
-  const p=await pickPlayable(bgmSrc,{prewarm:true}); if(p){ bgmPlay=async()=>{
-    // 真实播放（渐入）
-    const vol=(typeof data.bgmVol==='number'?data.bgmVol:0.28);
-    const a=new Audio(bgmSrc.find(Boolean)); a.loop=true; a.volume=0.001; a.playsInline=true; addAudioEl(a);
-    try{ await a.play(); }catch(_){}
-    let steps=14, step=(vol-a.volume)/steps; let id=setInterval(()=>{steps--; try{a.volume=Math.min(vol,(a.volume||0)+step)}catch(_){ } if(steps<=0) clearInterval(id);},120);
-    // 结束时淡出由 __finish() 负责
-    a.onended=()=>AUD.delete(a);
-  } }
-
-  const g=(data.emcee_gender||'female')==='male'?'male':'female';
-  emceeOpenPlay = await pickPlayable(['assets/emcee_'+g+'_open.m4a','assets/emcee_'+g+'_open.mp3','assets/emcee_'+g+'_open.ogg','assets/emcee_'+g+'_open.wav'],{prewarm:true});
-  emceeClosePlay= await pickPlayable(['assets/emcee_'+g+'_close.m4a','assets/emcee_'+g+'_close.mp3','assets/emcee_'+g+'_close.ogg','assets/emcee_'+g+'_close.wav'],{prewarm:true});
-}
-
-/* TTS（稳定缓冲） */
+/* TTS：加缓冲，给暂停键可控 */
 async function speakTTS(text,pref){
   const synth=window.speechSynthesis; if(!synth || !text) return;
   try{synth.resume&&synth.resume();}catch(_){}
   await new Promise(r=>setTimeout(r,100));
-  function choose(){
-    const list=synth.getVoices()||[]; const want=(pref==='male')?['Tao','Daniel','Alex','Google US English','Google Mandarin']:['Xiaoxiao','Xiaoyi','Yating','Samantha','Google 中文','Google Mandarin'];
-    for(const w of want){ const v=list.find(v=>(v.name||'').toLowerCase().includes(w.toLowerCase())); if(v) return v; }
-    return list[0]||null;
-  }
-  const u=new SpeechSynthesisUtterance(text); const v=choose(); if(v){u.voice=v;u.lang=v.lang||'zh-CN';} else {u.lang='zh-CN'}
+  function pick(){ const vs=synth.getVoices()||[]; const want=(pref==='male')?['Tao','Daniel','Alex','Google US English','Google Mandarin']:['Xiaoxiao','Xiaoyi','Yating','Samantha','Google 中文','Google Mandarin']; for(const w of want){const hit=vs.find(v=>(v.name||'').toLowerCase().includes(w.toLowerCase())); if(hit) return hit;} return vs[0]||null;}
+  const u=new SpeechSynthesisUtterance(text), v=pick(); if(v){u.voice=v;u.lang=v.lang||'zh-CN'} else u.lang='zh-CN';
   u.rate=(pref==='male'?0.95:0.98); u.pitch=(pref==='male'?0.96:1.04);
-  addAudioEl({pause:()=>synth.pause&&synth.pause(), play:()=>synth.resume&&synth.resume()});
+  addTrack({pause:()=>synth.pause&&synth.pause(), play:()=>synth.resume&&synth.resume()});
   await new Promise(res=>{u.onend=res;u.onerror=res; try{synth.speak(u);}catch(_){res();} setTimeout(res,15000);});
 }
 
-/* 主段原声（URL→随页→assets→TTS） */
+/* 主段原声（URL→随页→assets→TTS） + BGM 压低/恢复 */
 async function playMain(){
-  const chain=[ data.voiceUrl, ss('voice_'+key),
+  duck(true);
+  const ok=await firstPlayable([
+    data.voiceUrl, ss('voice_'+key),
     'assets/voice_user.m4a','assets/voice_user.mp3','assets/voice_user.ogg','assets/voice_user.wav',
     'assets/cove_default.m4a','assets/cove_default.mp3','assets/cove_default.ogg','assets/cove_default.wav'
-  ];
-  for(const s of chain){ if(!s) continue; try{ const ok=await playOne(s,{}); if(ok) return; }catch(_){ } }
-  await speakTTS(data.letter||'', (data.reader_gender||'female'));
+  ],{loop:false,volume:1});
+  if(!ok){
+    const text=(data.letter||''); 
+    if(text.trim()){ await speakTTS(text,(data.reader_gender||'female')); }
+    else{ await speakTTS('此处是你的原声纪念段落。下次可在入口页选择“原声文件”或粘贴文字。',(data.reader_gender||'female')); }
+  }
+  duck(false);
 }
 
-/* 倒计时（仅显示，不触发抢播）+ 结尾完成条件 */
-let paused=false,endAt=0,tickId=null,okToFinish=false,closeDone=false;
+/* 倒计时（仅显示） */
+let paused=false,endAt=0,tickId=null,okFinish=false,closeDone=false;
 function startClock(sec){
   endAt=Date.now()+sec*1000;
   function tick(){
     if(paused){ tickId=setTimeout(tick,300); return; }
     const left=Math.max(0,Math.ceil((endAt-Date.now())/1000));
     cdEl.textContent=String(Math.floor(left/60)).padStart(2,'0')+':'+String(left%60).padStart(2,'0');
-    if(left===0){ okToFinish=true; if(closeDone) __finish(); else tickId=setTimeout(tick,250); }
+    if(left===0){ okFinish=true; if(closeDone) __finish(); else tickId=setTimeout(tick,250); }
     else{ tickId=setTimeout(tick,250); }
   }
   if(tickId) clearTimeout(tickId); tick();
 }
 
-/* 播放队列（保证严格顺序，不重叠） */
-let Q=Promise.resolve();
-function enqueue(task){ Q=Q.then(task).catch(()=>{}); return Q; }
+/* 播放队列：严格串行 */
+let Q=Promise.resolve(); function step(fn){ Q=Q.then(fn).catch(()=>{}); return Q; }
 
 /* 录音（保留） */
 let rec=null, recChunks=[], recStream=null, recTimer=null, recStart=0;
@@ -309,35 +278,41 @@ function __startRec(){
 function __stopRec(){ const btn=$('recBtn'),info=$('recInfo'); try{rec&&rec.state==='recording'&&rec.stop()}catch(_){}
   if(recTimer){clearTimeout(recTimer);recTimer=null} if(btn) btn.textContent='🎙️ 重新录音'; if(info){info.style.display='block';info.textContent='录音结束'} }
 
-/* —— 开始：按“队列”严格串行 —— */
+/* —— 开始 —— */
 async function __start(ev){
   ev&&ev.stopPropagation(); if(window.__started) return; window.__started=true; setDot(true);
   $('hint').style.display='none'; __unlock();
 
-  await prewarmAll();              // 预热资源
   startClock(Number(data.duration)||180);
-  if(bgmPlay) bgmPlay();           // 渐入 BGM
+  await startBGM();
 
   const me=(data.yourName||'你'), ai=(data.aiName||'TA');
   const openText=(data.emcee_open||'').replace('{meName}',me).replace('{aiName}',ai);
   const closeText=(data.emcee_close||'');
 
-  // 1) 点名（一定先念名字）
-  enqueue(()=>speakTTS(`现在，为 ${me} 与 ${ai} 的仪式开始。`, data.emcee_gender||'female'));
+  // 判定是否有“司仪开场音轨”
+  const hasOpenAudio = await firstPlayable(['assets/emcee_'+((data.emcee_gender||'female')==='male'?'male':'female')+'_open.m4a'],{volume:0.001})
+                        || await firstPlayable(['assets/emcee_'+((data.emcee_gender||'female')==='male'?'male':'female')+'_open.mp3'],{volume:0.001});
 
-  // 2) 开场司仪（有音轨播音轨；否则 TTS 开场词）
-  if(emceeOpenPlay){ enqueue(()=>emceeOpenPlay({})); }
-  else{ enqueue(()=>speakTTS(openText, data.emcee_gender||'female')); }
+  // 1) 开场：规则——若有开场音轨，则“只播音轨，不再TTS点名”；否则 TTS（点名+开场词）
+  if(hasOpenAudio){
+    step(async()=>{ duck(true); await firstPlayable(['assets/emcee_'+((data.emcee_gender||'female')==='male'?'male':'female')+'_open.m4a','assets/emcee_'+((data.emcee_gender||'female')==='male'?'male':'female')+'_open.mp3','assets/emcee_'+((data.emcee_gender||'female')==='male'?'male':'female')+'_open.ogg','assets/emcee_'+((data.emcee_gender||'female')==='male'?'male':'female')+'_open.wav'],{volume:1}); duck(false); });
+  }else{
+    step(async()=>{ duck(true); await speakTTS(`现在，为 ${me} 与 ${ai} 的仪式开始。`,(data.emcee_gender||'female')); if(openText.trim()) await speakTTS(openText,(data.emcee_gender||'female')); duck(false); });
+  }
 
-  // 3) 主段原声/文字（URL→随页→assets→TTS）
-  enqueue(()=>playMain());
+  // 2) 主段
+  step(async()=>{ await playMain(); });
 
-  // 4) 结尾：到点才排入队列；若前面还没播完，会自动顺延，绝不重叠
-  const CLOSE_BEFORE = (Number(data.duration)||180) >= 300 ? 10 : ((Number(data.duration)||180) >= 180 ? 9 : 8);
-  const ms = Math.max(0, (endAt - Date.now()) - CLOSE_BEFORE*1000);
+  // 3) 结尾：在结束前 8~10 秒排入队列；等前面播完再播，绝不重叠
+  const dur=Number(data.duration)||180, CLOSE_BEFORE=dur>=300?10:dur>=180?9:8;
+  const ms=Math.max(0,(endAt-Date.now())-CLOSE_BEFORE*1000);
   setTimeout(()=>{
-    if(emceeClosePlay){ enqueue(()=>emceeClosePlay({})).then(()=>{ closeDone=true; if(okToFinish) __finish(); }); }
-    else{ enqueue(()=>speakTTS(closeText, data.emcee_gender||'female')).then(()=>{ closeDone=true; if(okToFinish) __finish(); }); }
+    step(async()=>{ duck(true);
+      const ok=await firstPlayable(['assets/emcee_'+((data.emcee_gender||'female')==='male'?'male':'female')+'_close.m4a','assets/emcee_'+((data.emcee_gender||'female')==='male'?'male':'female')+'_close.mp3','assets/emcee_'+((data.emcee_gender||'female')==='male'?'male':'female')+'_close.ogg','assets/emcee_'+((data.emcee_gender||'female')==='male'?'male':'female')+'_close.wav'],{volume:1});
+      if(!ok && closeText.trim()) await speakTTS(closeText,(data.emcee_gender||'female'));
+      duck(false); closeDone=true; if(okFinish) __finish();
+    });
   }, ms);
 
   if(isReplay){ bump('view_'+cid); }
@@ -346,33 +321,27 @@ async function __start(ev){
 /* 暂停/继续 */
 function __pause(){
   if(!paused){ paused=true; $('pause').textContent='继续'; pauseAll(); }
-  else{ paused=false; $('pause').textContent='暂停';
-    const t=cdEl.textContent.split(':'), left=(parseInt(t[0]||'0')*60+parseInt(t[1]||'0'))||0;
-    endAt=Date.now()+left*1000; resumeAll();
-  }
+  else{ paused=false; $('pause').textContent='暂停'; const t=cdEl.textContent.split(':'), left=(parseInt(t[0]||'0')*60+parseInt(t[1]||'0'))||0; endAt=Date.now()+left*1000; resumeAll(); }
 }
 
-/* 结束/收尾 */
-function __finishNow(){ closeDone=true; okToFinish=true; __finish(); }
+/* 结束 */
+function __finishNow(){ closeDone=true; okFinish=true; __finish(); }
 function __finish(){
   try{bump('finish_'+cid)}catch(_){}
   try{
     AUD.forEach(a=>{ try{
-      if(a.loop){ // 认为是 BGM：淡出
-        let n=10,step=(a.volume||0)/10; const id=setInterval(()=>{n--; try{a.volume=Math.max(0,(a.volume||0)-step)}catch(_){ } if(n<=0){clearInterval(id); try{a.pause()}catch(_){}}},100);
-      }else{ a.pause(); }
+      if(a.loop){ let n=10,step=(a.volume||0)/10; const id=setInterval(()=>{n--; try{a.volume=Math.max(0,(a.volume||0)-step)}catch(_){ } if(n<=0){clearInterval(id); try{a.pause()}catch(_){}}},100); }
+      else{ a.pause(); }
     }catch(_){ }});
   }catch(_){}
   location.href='certificate.html#'+location.hash.slice(1);
 }
 
-/* 分享/打赏 + 统计 */
+/* 分享/打赏 */
 function __landingURL(){ try{ const u=new URL('index.html',location.href).href; return u.replace(/index\.html(\?|#|$)/,'$1'); }catch(e){ return 'index.html'; } }
 function __openShare(link,title){ const m=$('shareModal'),i=$('shareInput'),qr=$('shareQR'),t=$('shareTitle'),fb=$('qrFallback'); if(t)t.textContent=title||'分享链接'; if(!m||!i||!qr)return; i.value=link; if(fb)fb.style.display='none';
-  const p='https://api.qrserver.com/v1/create-qr-code/?size=240x240&data='+encodeURIComponent(link);
-  const b='https://quickchart.io/qr?size=240&text='+encodeURIComponent(link);
-  qr.onerror=function(){qr.onerror=null;qr.src=b;qr.onload=null;setTimeout(()=>{if(qr.naturalWidth===0&&fb){fb.style.display='flex'}},1000)};
-  qr.src=p; m.style.display='flex'; __updateShareStats();
+  const p='https://api.qrserver.com/v1/create-qr-code/?size=240x240&data='+encodeURIComponent(link), b='https://quickchart.io/qr?size=240&text='+encodeURIComponent(link);
+  qr.onerror=function(){qr.onerror=null;qr.src=b;qr.onload=null;setTimeout(()=>{if(qr.naturalWidth===0&&fb){fb.style.display='flex'}},1000)}; qr.src=p; m.style.display='flex'; __updateShareStats();
 }
 async function __updateShareStats(){ const el=$('statsLine'); if(!el) return; const v=await readC('view_'+cid), f=await readC('finish_'+cid), t=await readC('tip_open_'+cid); el.textContent='累计观看：'+v+' 次 · 完播：'+f+' 次 · 打赏点击：'+t+' 次'; }
 function __copyShare(){ const i=$('shareInput'); if(!i) return; i.select(); i.setSelectionRange(0,99999); try{navigator.clipboard.writeText(i.value).then(()=>alert('已复制链接'))}catch(e){try{document.execCommand('copy');alert('已复制链接')}catch(_){alert('复制失败，请长按输入框复制')}} }
@@ -380,7 +349,7 @@ function __shareLanding(){ const link=__landingURL(); try{ if(navigator.share){n
 function __shareReplay(){ const base=location.href.split('#')[0], hash=location.hash.slice(1); const link=base+'#'+(hash?(hash.includes('view=1')?hash:hash+'&view=1'):'view=1'); try{ if(navigator.share){navigator.share({title:'我的 AI 仪式（可回放）',url:link}).catch(()=>__openShare(link,'分享完整流程'));} else {__openShare(link,'分享完整流程');} }catch(_){ __openShare(link,'分享完整流程'); } }
 function __tip(){ try{bump('tip_open_'+cid)}catch(_){ } const m=$('tipModal'); if(m) m.style.display='flex'; }
 
-/* 微信内核兼容 */
+/* 微信兼容 */
 document.addEventListener('WeixinJSBridgeReady',()=>{try{resumeAll()}catch(_){ } setDot(true)},false);
 </script>
 </body></html>
